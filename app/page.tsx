@@ -13,6 +13,9 @@ import VoiceEngine from "@/components/VoiceEngine";
 import Chat, { type ChatHandle } from "@/components/Chat";
 import Autonomy from "@/components/Autonomy";
 import Memory from "@/components/Memory";
+import Tasks from "@/components/Tasks";
+import Research from "@/components/Research";
+import Ops from "@/components/Ops";
 import WebTool from "@/components/WebTool";
 import BrowserControl from "@/components/BrowserControl";
 import ArcReactor from "@/components/ArcReactor";
@@ -185,6 +188,9 @@ export default function Dashboard() {
         <div className="lg:col-span-1 flex flex-col gap-4">
           <VoiceEngine onIntent={handleIntent} onConverse={handleConverse} />
           <Chat registerAsk={(fn) => { askRef.current = fn; }} />
+          <Tasks />
+          <Ops />
+          <Research />
           <Memory />
           <Autonomy />
           <Panel title="Command Log">

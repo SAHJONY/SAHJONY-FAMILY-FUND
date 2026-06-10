@@ -29,9 +29,25 @@ export default function DealsPage() {
   const [aiBusy, setAiBusy] = useState(false);
   const [ai, setAi] = useState<string | null>(null);
 
+  const [kpis, setKpis] = useState<any>(null);
+  const [dispo, setDispo] = useState<{ id: string; text: string } | null>(null);
   const loadDeals = async () => setDeals((await (await fetch("/api/wholesale/deals", { cache: "no-store" })).json()).deals ?? []);
   const loadBuyers = async () => setBuyers((await (await fetch("/api/wholesale/buyers", { cache: "no-store" })).json()).buyers ?? []);
-  useEffect(() => { loadDeals(); loadBuyers(); }, []);
+  const loadKpis = async () => setKpis(await (await fetch("/api/wholesale/kpis", { cache: "no-store" })).json());
+  useEffect(() => { loadDeals(); loadBuyers(); loadKpis(); }, []);
+
+  const openContract = async (dealId: string) => {
+    const r = await fetch("/api/wholesale/contract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dealId }) });
+    const html = await r.text();
+    const w = window.open("", "_blank");
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+  const draftDispo = async (dealId: string) => {
+    setDispo({ id: dealId, text: "Drafting…" });
+    const r = await fetch("/api/wholesale/dispo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dealId }) });
+    const j = await r.json();
+    setDispo({ id: dealId, text: j.email ?? j.error ?? "No draft." });
+  };
 
   useEffect(() => {
     if (!sel) { setMatches([]); return; }
@@ -151,13 +167,34 @@ Matched buyers in network: ${matches.length}.`;
           SAHJONY CAPITAL LLC
         </h1>
         <div className="flex gap-2">
-          <Link href="/integrations" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(63,224,255,0.4)] text-[var(--muted)] hover:text-[var(--hud)]">⚇ Tools &amp; import</Link>
-          <Link href="/" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">← Control Plane</Link>
+          <Link href="/calc" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(63,224,255,0.4)] text-[var(--muted)] hover:text-[var(--hud)]">∑ Calc</Link>
+          <Link href="/crm" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)]">⊞ CRM</Link>
+          <Link href="/integrations" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(63,224,255,0.4)] text-[var(--muted)] hover:text-[var(--hud)]">⚇ Tools</Link>
+          <a href="/api/wholesale/export" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(63,224,255,0.4)] text-[var(--muted)] hover:text-[var(--hud)]">⬇ Backup</a>
+          <Link href="/" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">← Control</Link>
         </div>
       </div>
       <p className="text-[10px] text-[var(--muted)] tracking-[0.2em] uppercase mb-5">
         Wholesaling deal desk · {pipeline.count} deals · {pipeline.buyers} buyers · projected fees {usd(pipeline.projFees)}
       </p>
+
+      {kpis && (
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+          {[
+            { l: "Deals", v: kpis.totals?.deals ?? 0 },
+            { l: "Buyers", v: kpis.totals?.buyers ?? 0 },
+            { l: "Projected fees", v: "$" + (kpis.projectedFees ?? 0).toLocaleString() },
+            { l: "Closed fees", v: "$" + (kpis.closedFees ?? 0).toLocaleString() },
+            { l: "JV cut", v: "$" + (kpis.jvCut ?? 0).toLocaleString() },
+            { l: "Conversion", v: (kpis.conversionPct ?? 0) + "%" },
+          ].map((k) => (
+            <div key={k.l} className="hud-panel p-2 text-center">
+              <div className="hud-text text-[15px] text-[var(--hud)]">{k.v}</div>
+              <div className="text-[9px] text-[var(--muted)] uppercase tracking-widest">{k.l}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="hud-panel p-3 mb-5 text-[10px] text-[var(--muted)] leading-relaxed">
         Contacts are your own CRM data. No skip-tracing or scraped personal info; no automated cold-call/text blasting
@@ -275,8 +312,16 @@ Matched buyers in network: ${matches.length}.`;
                     <select value={dl.status} onChange={(e) => setStatus(dl.id, e.target.value)} className="bg-transparent border border-[rgba(63,224,255,0.2)] text-[9px] uppercase tracking-widest text-[var(--muted)] px-1 py-0.5">
                       {["lead", "under_contract", "assigned", "closed", "dead"].map((s) => <option key={s} value={s} className="bg-[#040b16]">{s.replace("_", " ")}</option>)}
                     </select>
+                    <button onClick={() => openContract(dl.id)} className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-[var(--hud)] text-[var(--hud)]">contract</button>
+                    <button onClick={() => draftDispo(dl.id)} className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-[var(--gold)] text-[var(--gold)]">dispo</button>
                     <button onClick={() => delDeal(dl.id)} className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-[var(--bad)] text-[var(--bad)]">del</button>
                   </div>
+                  {dispo?.id === dl.id && (
+                    <div className="mt-2 border border-[rgba(255,194,75,0.3)] p-2 text-[11px] text-[var(--text)] whitespace-pre-wrap leading-relaxed max-h-52 overflow-y-auto">
+                      {dispo.text}
+                      <div className="text-[9px] text-[var(--muted)] mt-1 uppercase tracking-wide">Review before sending to your opt-in buyer list.</div>
+                    </div>
+                  )}
                 </div>
               ))}
           </div>
