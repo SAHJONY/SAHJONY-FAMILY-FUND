@@ -68,6 +68,8 @@ function useVelocity(): VelocityMetrics {
 interface HealthResp {
   backends: LlmBackendHealth[];
   vercelEnv: string;
+  primaryModel: string | null;
+  rotationCount: number;
 }
 interface DevicesResp {
   devices: DeviceNode[];
@@ -196,7 +198,8 @@ export default function Dashboard() {
             <div className="space-y-3">
               <Metric label="Telemetry interval" value="2.0" unit="s" />
               <Metric label="Health interval" value="5.0" unit="s" />
-              <Metric label="Backends tracked" value={health?.backends.length ?? 0} />
+              <Metric label="Active model" value={(health?.primaryModel ?? "—").split("/").pop() || "—"} />
+              <Metric label="Rotation pool" value={(health?.rotationCount ?? 0) + 1} unit="models" />
               <Metric label="Devices enrolled" value={devicesResp?.devices.filter((d) => d.enrolled).length ?? 0} />
               <Metric label="Deploy target" value={health?.vercelEnv ?? "local"} />
             </div>

@@ -53,8 +53,17 @@ export async function GET() {
     );
   }
   const vercel = process.env.VERCEL_ENV ?? "local";
+  const primaryModel = process.env.NIM_MODEL ?? null;
+  const rotationCount =
+    (process.env.NIM_FALLBACK_MODELS || "").split(",").filter(Boolean).length;
   return NextResponse.json(
-    { backends: checks, vercelEnv: vercel, timestamp: Date.now() },
+    {
+      backends: checks,
+      vercelEnv: vercel,
+      primaryModel,
+      rotationCount,
+      timestamp: Date.now(),
+    },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
