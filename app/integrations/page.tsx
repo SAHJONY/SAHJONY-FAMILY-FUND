@@ -7,6 +7,9 @@ interface Integrations {
   bland: { connected: boolean; detail: string };
   googleVoice: { number: string | null; detail: string };
   propstream: { url: string; detail: string };
+  regrid?: { connected: boolean; detail: string };
+  docusign?: { connected: boolean; detail: string };
+  whatsapp?: { connected: boolean; detail: string };
 }
 
 const F = "bg-transparent border border-[rgba(63,224,255,0.25)] px-2 py-1.5 text-[12px] text-[var(--text)] placeholder:text-[var(--muted)]";
@@ -46,6 +49,22 @@ export default function IntegrationsPage() {
   const searchMls = async () => {
     setMlsRes({ loading: true });
     setMlsRes(await (await fetch("/api/mls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ city: mq.city, state: mq.state, minPrice: Number(mq.minPrice) || 0, maxPrice: Number(mq.maxPrice) || 0, minBeds: Number(mq.minBeds) || 0 }) })).json());
+  };
+
+  // DocuSign + WhatsApp
+  const [ds, setDs] = useState({ signerName: "", signerEmail: "", documentTitle: "" });
+  const [dsMsg, setDsMsg] = useState<string | null>(null);
+  const sendDs = async (mode: "email" | "embedded") => {
+    setDsMsg("Sending…");
+    const j = await (await fetch("/api/integrations/docusign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...ds, mode, consent: true }) })).json();
+    setDsMsg(j.ok ? (j.signingUrl ? `Online signing: ${j.signingUrl}` : `Sent by email (envelope ${j.envelopeId})`) : (j.error ?? "Failed"));
+  };
+  const [wa, setWa] = useState({ to: "", text: "" });
+  const [waMsg, setWaMsg] = useState<string | null>(null);
+  const sendWa = async () => {
+    setWaMsg("Sending…");
+    const j = await (await fetch("/api/integrations/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...wa, consent: true }) })).json();
+    setWaMsg(j.ok ? "Sent ✓" : (j.error ?? "Failed"));
   };
 
   // Driving for dollars
@@ -154,6 +173,32 @@ export default function IntegrationsPage() {
             </div>
           )}
           {mlsRes?.detail && <div className="text-[10px] text-[var(--muted)] mt-1">{mlsRes.detail}</div>}
+        </section>
+
+        {/* DocuSign */}
+        <section className={card}>
+          <h2 className="label mb-2 text-[var(--gold)] flex items-center gap-2"><Dot on={!!i?.docusign?.connected} /> DocuSign · e-sign</h2>
+          <p className="text-[11px] text-[var(--muted)] mb-2">{i?.docusign?.detail}</p>
+          <div className="grid grid-cols-2 gap-1.5 mb-2">
+            <input className={F} placeholder="Signer name" value={ds.signerName} onChange={(e) => setDs({ ...ds, signerName: e.target.value })} />
+            <input className={F} placeholder="Signer email" value={ds.signerEmail} onChange={(e) => setDs({ ...ds, signerEmail: e.target.value })} />
+            <input className={`${F} col-span-2`} placeholder="Document title / deal address" value={ds.documentTitle} onChange={(e) => setDs({ ...ds, documentTitle: e.target.value })} />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => sendDs("email")} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[var(--good)] text-[var(--good)]">Send by email</button>
+            <button onClick={() => sendDs("embedded")} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[var(--hud)] text-[var(--hud)]">Sign online</button>
+          </div>
+          {dsMsg && <div className="text-[10px] text-[var(--text)] mt-2 break-all">{dsMsg}</div>}
+        </section>
+
+        {/* WhatsApp */}
+        <section className={card}>
+          <h2 className="label mb-2 text-[var(--gold)] flex items-center gap-2"><Dot on={!!i?.whatsapp?.connected} /> WhatsApp</h2>
+          <p className="text-[11px] text-[var(--muted)] mb-2">{i?.whatsapp?.detail}</p>
+          <input className={`${F} w-full mb-1.5`} placeholder="To (phone, digits)" value={wa.to} onChange={(e) => setWa({ ...wa, to: e.target.value })} />
+          <textarea className={`${F} w-full h-16 mb-2`} placeholder="Message (opt-in contacts only)" value={wa.text} onChange={(e) => setWa({ ...wa, text: e.target.value })} />
+          <button onClick={sendWa} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[var(--good)] text-[var(--good)]">Send</button>
+          {waMsg && <span className="text-[10px] text-[var(--text)] ml-2">{waMsg}</span>}
         </section>
 
         {/* PropStream */}

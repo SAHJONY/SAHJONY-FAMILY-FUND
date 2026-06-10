@@ -153,6 +153,14 @@ Matched buyers in network: ${matches.length}.`;
     setAiBusy(false);
   };
 
+  const genContract = async () => {
+    if (!selectedDeal) return;
+    const res = await fetch("/api/wholesale/contract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dealId: selectedDeal.id }) });
+    const html = await res.text();
+    const w = window.open("", "_blank");
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
   const pipeline = useMemo(() => {
     const fees = deals.filter((x) => x.status === "assigned" || x.status === "under_contract").reduce((s, x) => s + (x.desiredFee || 0), 0);
     return { count: deals.length, buyers: buyers.length, projFees: fees };
@@ -374,7 +382,13 @@ Matched buyers in network: ${matches.length}.`;
           <div className="border-t border-[rgba(63,224,255,0.15)] pt-3">
             <div className="flex items-center justify-between mb-2">
               <span className="label text-[var(--hud)]">▸ Buying-box matches{selectedDeal ? ` — ${selectedDeal.address}` : ""}</span>
-              {selectedDeal && <button onClick={analyzeWithAI} disabled={aiBusy} className="text-[10px] tracking-widest uppercase px-2 py-1 border border-[var(--gold)] text-[var(--gold)] disabled:opacity-40">{aiBusy ? "…" : "Analyze w/ SAHJONY"}</button>}
+              {selectedDeal && (
+                <div className="flex gap-1.5">
+                  <button onClick={analyzeWithAI} disabled={aiBusy} className="text-[10px] tracking-widest uppercase px-2 py-1 border border-[var(--gold)] text-[var(--gold)] disabled:opacity-40">{aiBusy ? "…" : "Analyze"}</button>
+                  <button onClick={() => draftDispo(selectedDeal.id)} disabled={aiBusy} className="text-[10px] tracking-widest uppercase px-2 py-1 border border-[var(--hud)] text-[var(--hud)] disabled:opacity-40">Dispo email</button>
+                  <button onClick={genContract} className="text-[10px] tracking-widest uppercase px-2 py-1 border border-[var(--good)] text-[var(--good)]">Contract</button>
+                </div>
+              )}
             </div>
             {!selectedDeal ? <span className="text-[11px] text-[var(--muted)]">Select a deal to assign it to buyers.</span> :
               matches.length === 0 ? <span className="text-[11px] text-[var(--muted)]">No buyers fit this deal&apos;s box yet.</span> :

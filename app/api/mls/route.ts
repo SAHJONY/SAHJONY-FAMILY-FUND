@@ -12,11 +12,20 @@ export const runtime = "nodejs";
 
 function publicLinks(city: string, state: string, minP: number, maxP: number) {
   const q = encodeURIComponent(`${city} ${state}`.trim());
+  const cs = encodeURIComponent(`${city}_${state}`);
   return [
-    { label: "Realtor.com", url: `https://www.realtor.com/realestateandhomes-search/${encodeURIComponent(`${city}_${state}`)}` },
-    { label: "Zillow", url: `https://www.zillow.com/homes/${q}_rb/` },
-    { label: "Redfin", url: `https://www.redfin.com/city/search?location=${q}` },
-    { label: "FSBO.com", url: `https://fsbo.com/listings/?location=${q}` },
+    { label: "Zillow (FSBO)", url: `https://www.zillow.com/homes/fsbo/${q}_rb/`, kind: "fsbo" },
+    { label: "Zillow (all)", url: `https://www.zillow.com/homes/${q}_rb/`, kind: "mls" },
+    { label: "Realtor.com", url: `https://www.realtor.com/realestateandhomes-search/${cs}`, kind: "mls" },
+    { label: "Redfin", url: `https://www.redfin.com/city/search?location=${q}`, kind: "mls" },
+    { label: "Homes.com", url: `https://www.homes.com/${q}/`, kind: "mls" },
+    { label: "Trulia", url: `https://www.trulia.com/for_sale/${q}/`, kind: "mls" },
+    { label: "FSBO.com", url: `https://fsbo.com/listings/?location=${q}`, kind: "fsbo" },
+    { label: "ForSaleByOwner", url: `https://www.forsalebyowner.com/search/list/?q=${q}`, kind: "fsbo" },
+    { label: "Craigslist (FSBO)", url: `https://www.craigslist.org/search/rea?query=${q}`, kind: "fsbo" },
+    { label: "Auction.com", url: `https://www.auction.com/residential/${state}/`, kind: "distressed" },
+    { label: "HUD Homes", url: `https://www.hudhomestore.gov/Listing/PropertySearch.aspx`, kind: "distressed" },
+    { label: "Foreclosure.com", url: `https://www.foreclosure.com/${encodeURIComponent(state.toLowerCase())}`, kind: "distressed" },
   ];
 }
 

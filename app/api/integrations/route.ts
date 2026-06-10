@@ -29,6 +29,14 @@ export async function GET() {
           ? "Regrid connected — real parcel data auto-fills on Auto-find."
           : "Set REGRID_API_TOKEN for real nationwide parcel data (owner/APN/assessed value).",
       },
+      docusign: {
+        connected: !!(process.env.DOCUSIGN_BASE_URI && process.env.DOCUSIGN_ACCOUNT_ID && process.env.DOCUSIGN_TOKEN),
+        detail: "E-sign contracts via email or embedded online signing. Set DOCUSIGN_BASE_URI/ACCOUNT_ID/TOKEN.",
+      },
+      whatsapp: {
+        connected: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID),
+        detail: "WhatsApp Business Cloud API (Meta). Set WHATSAPP_TOKEN + WHATSAPP_PHONE_ID.",
+      },
     },
     { headers: { "Cache-Control": "no-store" } }
   );

@@ -12,6 +12,8 @@ import Link from "next/link";
 import VoiceEngine from "@/components/VoiceEngine";
 import Chat, { type ChatHandle } from "@/components/Chat";
 import Autonomy from "@/components/Autonomy";
+import Hermes from "@/components/Hermes";
+import Finder from "@/components/Finder";
 import Memory from "@/components/Memory";
 import Tasks from "@/components/Tasks";
 import Research from "@/components/Research";
@@ -160,6 +162,10 @@ export default function Dashboard() {
             ⊞ CRM
           </Link>
           <Link href="/workforce"
+            className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(63,224,255,0.3)] text-[var(--muted)] hover:text-[var(--hud)] hover:border-[var(--hud)]">
+            ⛒ Team
+          </Link>
+          <Link href="/workforce"
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">
             ⚒ Team
           </Link>
@@ -187,6 +193,10 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <div className="mb-4">
+        <Hermes />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: voice + chat + log */}
         <div className="lg:col-span-1 flex flex-col gap-4">
@@ -196,6 +206,7 @@ export default function Dashboard() {
           <Ops />
           <Research />
           <Memory />
+          <Finder />
           <Autonomy />
           <Panel title="Command Log">
             <div className="hud-text text-[10px] space-y-1 min-h-[5rem] leading-relaxed">
