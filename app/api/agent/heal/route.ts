@@ -95,6 +95,7 @@ export async function GET() {
       healCount: state.healCount,
       events: state.events,
       brains: brainRoster(),
+      metrics: state.metrics,
       timestamp: Date.now(),
     },
     { headers: { "Cache-Control": "no-store" } }

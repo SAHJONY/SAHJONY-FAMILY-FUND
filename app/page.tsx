@@ -41,28 +41,15 @@ function useJson<T>(url: string, ms: number): T | null {
   return data;
 }
 
-function useVelocity(): VelocityMetrics {
-  const [v, setV] = useState<VelocityMetrics>({
-    inputTokensPerSec: 0, outputTokensPerSec: 0, firstTokenLatencyMs: 0,
-    activeTurns: 0, queueDepth: 0, source: "simulated",
-  });
-  const base = useRef(Math.random() * 40 + 60);
-  useEffect(() => {
-    const id = setInterval(() => {
-      base.current += (Math.random() - 0.5) * 18;
-      base.current = Math.max(20, Math.min(140, base.current));
-      setV({
-        inputTokensPerSec: Math.round(base.current * 0.6 + Math.random() * 10),
-        outputTokensPerSec: Math.round(base.current + Math.random() * 12),
-        firstTokenLatencyMs: Math.round(180 + Math.random() * 220),
-        activeTurns: Math.floor(Math.random() * 4),
-        queueDepth: Math.floor(Math.random() * 6),
-        source: "simulated",
-      });
-    }, 1200);
-    return () => clearInterval(id);
-  }, []);
-  return v;
+// Real, measured inference metrics from the streaming route. No simulation:
+// before the first inference these read zero and are tagged accordingly.
+interface RealMetrics {
+  requests: number;
+  lastFirstTokenMs: number;
+  lastTokensPerSec: number;
+  lastOutputChars: number;
+  lastModel: string | null;
+  lastAt: number;
 }
 
 interface HealthResp {
@@ -80,7 +67,8 @@ export default function Dashboard() {
   const tel = useJson<HostTelemetry>("/api/telemetry", 2000);
   const health = useJson<HealthResp>("/api/health", 5000);
   const devicesResp = useJson<DevicesResp>("/api/devices", 4000);
-  const velocity = useVelocity();
+  const metrics = useJson<RealMetrics>("/api/metrics", 2000);
+  const hasInference = !!metrics && metrics.requests > 0;
   const [log, setLog] = useState<string[]>([]);
   const [deployState, setDeployState] = useState<"idle" | "armed" | "running" | "done">("idle");
   const [coreActive, setCoreActive] = useState(false);
@@ -208,16 +196,23 @@ export default function Dashboard() {
 
         {/* Right: telemetry grid */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Velocity */}
+          {/* Velocity — real measured inference metrics */}
           <div id="speed">
-            <Panel title="Operational Velocity" badge={<SourceTag source={velocity.source} />} scan>
-              <div className="grid grid-cols-2 gap-3">
-                <Metric label="Output tok/s" value={velocity.outputTokensPerSec} bar={velocity.outputTokensPerSec / 1.5} />
-                <Metric label="Input tok/s" value={velocity.inputTokensPerSec} bar={velocity.inputTokensPerSec / 1.5} />
-                <Metric label="First-token" value={velocity.firstTokenLatencyMs} unit="ms" bar={velocity.firstTokenLatencyMs / 5} />
-                <Metric label="Active turns" value={velocity.activeTurns} />
-                <Metric label="Queue depth" value={velocity.queueDepth} bar={velocity.queueDepth * 16} />
-              </div>
+            <Panel title="Operational Velocity" badge={<SourceTag source={hasInference ? "measured" : "unavailable"} />} scan>
+              {hasInference && metrics ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Metric label="Output tok/s" value={metrics.lastTokensPerSec} bar={metrics.lastTokensPerSec / 1.5} />
+                  <Metric label="First-token" value={metrics.lastFirstTokenMs} unit="ms" bar={metrics.lastFirstTokenMs / 20} />
+                  <Metric label="Last output" value={metrics.lastOutputChars} unit="ch" />
+                  <Metric label="Inferences" value={metrics.requests} />
+                  <Metric label="Model" value={(metrics.lastModel ?? "—").split("/").pop() || "—"} />
+                </div>
+              ) : (
+                <div className="text-[11px] text-[var(--muted)] leading-relaxed">
+                  No inference measured yet. Talk to SAHJONY and these populate from
+                  real token timing — nothing is simulated.
+                </div>
+              )}
             </Panel>
           </div>
 

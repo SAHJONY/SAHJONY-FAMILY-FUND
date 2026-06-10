@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { endpoint, modelChain, MAX_TOKENS } from "@/lib/brain";
-import { logEvent, state } from "@/lib/runtime-state";
+import { logEvent, state, recordInference } from "@/lib/runtime-state";
 import { recallBlock } from "@/lib/memory-store";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
 
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder();
+    const startMs = Date.now();
+    let firstTokenMs = 0;
+    let outChars = 0;
+    const finalize = () => {
+      const dur = (Date.now() - startMs) / 1000;
+      const approxTokens = outChars / 4; // ~4 chars/token
+      recordInference({
+        firstTokenMs: firstTokenMs || Date.now() - startMs,
+        tokensPerSec: dur > 0 ? approxTokens / dur : 0,
+        outputChars: outChars,
+        model,
+      });
+    };
     const out = new ReadableStream({
       async start(controller) {
         let buf = "";
@@ -62,17 +75,22 @@ export async function POST(req: NextRequest) {
               const t = line.trim();
               if (!t.startsWith("data:")) continue;
               const payload = t.slice(5).trim();
-              if (payload === "[DONE]") { controller.close(); return; }
+              if (payload === "[DONE]") { finalize(); controller.close(); return; }
               try {
                 const j = JSON.parse(payload);
                 const delta = j?.choices?.[0]?.delta?.content;
-                if (delta) controller.enqueue(enc.encode(delta));
+                if (delta) {
+                  if (!firstTokenMs) firstTokenMs = Date.now() - startMs;
+                  outChars += delta.length;
+                  controller.enqueue(enc.encode(delta));
+                }
               } catch { /* partial json across chunks — ignore */ }
             }
           }
         } catch {
           controller.enqueue(enc.encode("\n[stream interrupted]"));
         }
+        finalize();
         controller.close();
       },
     });
