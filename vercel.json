@@ -14,6 +14,6 @@
     }
   ],
   "crons": [
-    { "path": "/api/finder/run", "schedule": "0 * * * *" }
+    { "path": "/api/finder/run", "schedule": "0 9 * * *" }
   ]
 }
