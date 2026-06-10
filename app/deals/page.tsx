@@ -108,7 +108,10 @@ Matched buyers in network: ${matches.length}.`;
         <h1 className="text-2xl tracking-[0.2em] text-[var(--hud)]" style={{ textShadow: "0 0 14px rgba(63,224,255,0.5)" }}>
           SAHJONY CAPITAL LLC
         </h1>
-        <Link href="/" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">← Control Plane</Link>
+        <div className="flex gap-2">
+          <Link href="/integrations" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[rgba(63,224,255,0.4)] text-[var(--muted)] hover:text-[var(--hud)]">⚇ Tools &amp; import</Link>
+          <Link href="/" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">← Control Plane</Link>
+        </div>
       </div>
       <p className="text-[10px] text-[var(--muted)] tracking-[0.2em] uppercase mb-5">
         Wholesaling deal desk · {pipeline.count} deals · {pipeline.buyers} buyers · projected fees {usd(pipeline.projFees)}
