@@ -153,6 +153,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/business"
+            className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">
+            ⊟ Ops
+          </Link>
           <Link href="/deals"
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">
             ◫ Capital
