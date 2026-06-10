@@ -14,6 +14,7 @@ import Chat, { type ChatHandle } from "@/components/Chat";
 import Autonomy from "@/components/Autonomy";
 import Memory from "@/components/Memory";
 import WebTool from "@/components/WebTool";
+import BrowserControl from "@/components/BrowserControl";
 import ArcReactor from "@/components/ArcReactor";
 import { Panel, SourceTag, StateDot, Metric, Gauge } from "@/components/ui";
 
@@ -159,6 +160,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/deals"
+            className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">
+            ◫ Capital
+          </Link>
           <Link href="/env"
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(63,224,255,0.3)] text-[var(--muted)] hover:text-[var(--hud)] hover:border-[var(--hud)]">
             ⚙ Env
@@ -309,6 +314,11 @@ export default function Dashboard() {
                 </p>
               </div>
             </Panel>
+          </div>
+
+          {/* Device & browser control */}
+          <div className="md:col-span-2">
+            <BrowserControl />
           </div>
 
           {/* Web tool */}

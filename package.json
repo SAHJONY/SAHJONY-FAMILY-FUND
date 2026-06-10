@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@playwright/test": "^1.60.0",
     "next": "^16.2.9",
+    "playwright": "^1.60.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
