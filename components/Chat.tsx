@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { askSahjony, type ChatMsg } from "@/lib/ask";
+import { askSahjonyStream, type ChatMsg } from "@/lib/ask";
 
 export interface ChatHandle {
   ask: (text: string, speak: (t: string) => void) => Promise<string>;
@@ -28,15 +28,29 @@ export default function Chat({
   const send = async (text: string, speak?: (t: string) => void): Promise<string> => {
     const clean = text.trim();
     if (!clean || busy) return "";
-    const next: ChatMsg[] = [...msgs, { role: "user", content: clean }];
-    setMsgs(next);
+    const history: ChatMsg[] = [...msgs, { role: "user", content: clean }];
+    // Push the user message + an empty assistant bubble that fills in live.
+    setMsgs([...history, { role: "assistant", content: "" }]);
     setInput("");
     setBusy(true);
-    const { reply, model: m } = await askSahjony(
-      next.filter((x) => x.role !== "system").slice(-10)
+
+    const { reply, model: m } = await askSahjonyStream(
+      history.filter((x) => x.role !== "system").slice(-10),
+      (_chunk, soFar) => {
+        // Stream tokens into the last (assistant) bubble in real time.
+        setMsgs((cur) => {
+          const copy = cur.slice();
+          copy[copy.length - 1] = { role: "assistant", content: soFar };
+          return copy;
+        });
+      }
     );
     if (m) setModel(m);
-    setMsgs((cur) => [...cur, { role: "assistant", content: reply }]);
+    setMsgs((cur) => {
+      const copy = cur.slice();
+      copy[copy.length - 1] = { role: "assistant", content: reply };
+      return copy;
+    });
     setBusy(false);
     speak?.(reply);
     return reply;

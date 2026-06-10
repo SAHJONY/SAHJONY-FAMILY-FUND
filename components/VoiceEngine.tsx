@@ -32,6 +32,9 @@ export default function VoiceEngine({
   const [lastIntent, setLastIntent] = useState<string>("");
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const wantListening = useRef(false);
+  // While true, recognition auto-restart is suspended (we're thinking/speaking);
+  // speak()'s onend lifts it and re-opens the mic — the continuous loop.
+  const suspendRef = useRef(false);
 
   const speak = useCallback((text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -39,7 +42,20 @@ export default function VoiceEngine({
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.02;
     u.pitch = 1.0;
-    u.onend = () => setState(wantListening.current ? "listening" : "idle");
+    u.onend = () => {
+      // Reply finished — lift the suspension and re-open the mic for the next turn.
+      suspendRef.current = false;
+      if (wantListening.current) {
+        try {
+          recogRef.current?.start();
+          setState("listening");
+        } catch {
+          setState("listening");
+        }
+      } else {
+        setState("idle");
+      }
+    };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   }, []);
@@ -68,6 +84,8 @@ export default function VoiceEngine({
       }
       setTranscript(final || interim);
       if (final) {
+        // Suspend auto-restart for this turn; speak()'s onend resumes the loop.
+        suspendRef.current = true;
         setState("processing");
         const result = parseIntent(final);
         setLastIntent(`${result.intent} · ${(result.confidence * 100) | 0}%`);
@@ -82,15 +100,17 @@ export default function VoiceEngine({
         }
       }
     };
-    r.onerror = () => setState("idle");
+    r.onerror = () => { if (!suspendRef.current) setState("idle"); };
     r.onend = () => {
-      if (wantListening.current) {
+      // Don't restart while a turn is being processed/spoken — that path resumes
+      // the mic itself. Otherwise keep the continuous loop alive.
+      if (wantListening.current && !suspendRef.current) {
         try {
           r.start();
         } catch {
           /* already started */
         }
-      } else {
+      } else if (!wantListening.current) {
         setState("idle");
       }
     };

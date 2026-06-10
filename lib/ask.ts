@@ -15,6 +15,40 @@ export const SAHJONY_PERSONA: ChatMsg = {
     "(velocity, runtime telemetry, fleet, deployment) conversationally.",
 };
 
+// Real-time streaming ask: tokens are delivered to `onToken` as SAHJONY speaks.
+// Returns the full text + the model that served it. Falls back to non-stream on
+// any failure so the chat never dead-ends.
+export async function askSahjonyStream(
+  history: ChatMsg[],
+  onToken: (chunk: string, soFar: string) => void
+): Promise<{ reply: string; model?: string; degraded?: boolean }> {
+  try {
+    const res = await fetch("/api/llm/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: [SAHJONY_PERSONA, ...history] }),
+    });
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => ({}));
+      return { reply: data?.message ?? "My brain is offline, sir.", degraded: true };
+    }
+    const model = res.headers.get("x-sahjony-model") ?? undefined;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let full = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      full += chunk;
+      onToken(chunk, full);
+    }
+    return { reply: full.trim() || "…", model };
+  } catch (e) {
+    return { reply: `Connection error, sir: ${(e as Error).message}`, degraded: true };
+  }
+}
+
 export async function askSahjony(history: ChatMsg[]): Promise<{
   reply: string;
   model?: string;

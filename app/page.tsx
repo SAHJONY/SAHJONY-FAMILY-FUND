@@ -10,6 +10,7 @@ import type {
 import type { IntentName } from "@/lib/intent";
 import VoiceEngine from "@/components/VoiceEngine";
 import Chat, { type ChatHandle } from "@/components/Chat";
+import Autonomy from "@/components/Autonomy";
 import ArcReactor from "@/components/ArcReactor";
 import { Panel, SourceTag, StateDot, Metric, Gauge } from "@/components/ui";
 
@@ -176,6 +177,7 @@ export default function Dashboard() {
         <div className="lg:col-span-1 flex flex-col gap-4">
           <VoiceEngine onIntent={handleIntent} onConverse={handleConverse} />
           <Chat registerAsk={(fn) => { askRef.current = fn; }} />
+          <Autonomy />
           <Panel title="Command Log">
             <div className="hud-text text-[10px] space-y-1 min-h-[5rem] leading-relaxed">
               {log.length === 0 ? (

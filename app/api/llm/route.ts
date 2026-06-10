@@ -1,38 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { endpoint, modelChain, MAX_TOKENS } from "@/lib/brain";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// OpenAI-compatible proxy with AUTONOMOUS MODEL ROTATION.
-//
-// One endpoint (NVIDIA NIM by default), many models. The primary model is tried
-// first; on a retryable failure — rate limit (429), server error (5xx), timeout,
-// or an empty completion — it rotates to the next free model automatically. Auth
-// failures (401/403) and bad requests (400) are NOT retried across models, since
-// rotating wouldn't help. An optional separate cloud mirror is the last resort.
-
-function endpoint() {
-  return {
-    baseUrl: process.env.NIM_BASE_URL || "http://localhost:8000/v1",
-    apiKey: process.env.NIM_API_KEY,
-  };
-}
-
-function modelChain(): string[] {
-  const primary = process.env.NIM_MODEL || "meta/llama-3.1-8b-instruct";
-  const fallbacks = (process.env.NIM_FALLBACK_MODELS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  // De-dupe while preserving order.
-  return [...new Set([primary, ...fallbacks])];
-}
-
-const MAX_TOKENS = Number(process.env.NIM_MAX_TOKENS || 1024);
+// Non-streaming OpenAI-compatible proxy with autonomous model rotation. The
+// model order comes from the brain registry (supervisor-promoted model first).
+// Retryable failures (429/5xx/timeout/empty) rotate to the next brain; auth/4xx
+// stop early. Used as the fallback path and for one-shot calls.
 
 interface Attempt {
   model: string;
-  ok: boolean;
   status?: number;
   detail: string;
 }
@@ -60,30 +38,18 @@ async function tryModel(
       body: JSON.stringify({ model, messages, max_tokens: MAX_TOKENS }),
       signal: controller.signal,
     });
-
     if (!res.ok) {
-      // 429 / 5xx are worth rotating models for; 4xx (auth/bad request) are not.
       const retryable = res.status === 429 || res.status >= 500;
       const body = await res.text().catch(() => "");
-      return {
-        ok: false,
-        retryable,
-        status: res.status,
-        detail: `HTTP ${res.status} ${body.slice(0, 140)}`,
-      };
+      return { ok: false, retryable, status: res.status, detail: `HTTP ${res.status} ${body.slice(0, 120)}` };
     }
-
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
-    if (!content || !content.trim()) {
-      // Empty completion (e.g. reasoning model exhausted budget) — rotate.
-      return { ok: false, retryable: true, detail: "Empty completion" };
-    }
+    if (!content || !content.trim()) return { ok: false, retryable: true, detail: "Empty completion" };
     return { ok: true, data, model };
   } catch (e) {
     const err = e as Error;
-    const retryable = err.name === "AbortError" || err.name === "TypeError";
-    return { ok: false, retryable, detail: `${err.name}: ${err.message}` };
+    return { ok: false, retryable: err.name === "AbortError" || err.name === "TypeError", detail: `${err.name}: ${err.message}` };
   } finally {
     clearTimeout(t);
   }
@@ -91,14 +57,8 @@ async function tryModel(
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const messages = body.messages ?? [
-    { role: "user", content: body.prompt ?? "Say hello." },
-  ];
-  // Caller may override the chain (e.g. force a specific model).
-  const chain: string[] = Array.isArray(body.models) && body.models.length
-    ? body.models
-    : modelChain();
-
+  const messages = body.messages ?? [{ role: "user", content: body.prompt ?? "Say hello." }];
+  const chain: string[] = Array.isArray(body.models) && body.models.length ? body.models : modelChain();
   const { baseUrl, apiKey } = endpoint();
   const attempts: Attempt[] = [];
 
@@ -112,17 +72,13 @@ export async function POST(req: NextRequest) {
         ...r.data,
       });
     }
-    attempts.push({ model, ok: false, status: r.status, detail: r.detail });
-    // Non-retryable failure (auth/bad request): stop — rotation won't help.
+    attempts.push({ model, status: r.status, detail: r.detail });
     if (!r.retryable) {
       return NextResponse.json(
         {
           backend: baseUrl.replace(/^https?:\/\//, ""),
           degraded: true,
-          message:
-            r.status === 401 || r.status === 403
-              ? "Authentication failed. Check NIM_API_KEY."
-              : "Request rejected by the backend.",
+          message: r.status === 401 || r.status === 403 ? "Authentication failed. Check NIM_API_KEY." : "Request rejected by the backend.",
           attempts,
         },
         { status: r.status && r.status < 500 ? r.status : 502 }
@@ -131,13 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(
-    {
-      backend: baseUrl.replace(/^https?:\/\//, ""),
-      degraded: true,
-      message:
-        "All models in the rotation failed (rate-limited, erroring, or timing out). Try again shortly.",
-      attempts,
-    },
+    { backend: baseUrl.replace(/^https?:\/\//, ""), degraded: true, message: "All brain models failed (rate-limited/erroring/timeout).", attempts },
     { status: 503 }
   );
 }
