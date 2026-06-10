@@ -8,9 +8,12 @@ import type {
   VelocityMetrics,
 } from "@/lib/types";
 import type { IntentName } from "@/lib/intent";
+import Link from "next/link";
 import VoiceEngine from "@/components/VoiceEngine";
 import Chat, { type ChatHandle } from "@/components/Chat";
 import Autonomy from "@/components/Autonomy";
+import Memory from "@/components/Memory";
+import WebTool from "@/components/WebTool";
 import ArcReactor from "@/components/ArcReactor";
 import { Panel, SourceTag, StateDot, Metric, Gauge } from "@/components/ui";
 
@@ -156,6 +159,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/env"
+            className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(63,224,255,0.3)] text-[var(--muted)] hover:text-[var(--hud)] hover:border-[var(--hud)]">
+            ⚙ Env
+          </Link>
           {deployState === "armed" ? (
             <button onClick={runDeploy}
               className="text-[11px] tracking-[0.2em] uppercase px-5 py-2.5 font-bold border border-[var(--gold)] text-[var(--gold)] gold-glow">
@@ -177,6 +184,7 @@ export default function Dashboard() {
         <div className="lg:col-span-1 flex flex-col gap-4">
           <VoiceEngine onIntent={handleIntent} onConverse={handleConverse} />
           <Chat registerAsk={(fn) => { askRef.current = fn; }} />
+          <Memory />
           <Autonomy />
           <Panel title="Command Log">
             <div className="hud-text text-[10px] space-y-1 min-h-[5rem] leading-relaxed">
@@ -301,6 +309,11 @@ export default function Dashboard() {
                 </p>
               </div>
             </Panel>
+          </div>
+
+          {/* Web tool */}
+          <div className="md:col-span-2">
+            <WebTool />
           </div>
 
           {/* Fleet */}

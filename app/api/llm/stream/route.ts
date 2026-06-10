@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { endpoint, modelChain, MAX_TOKENS } from "@/lib/brain";
 import { logEvent, state } from "@/lib/runtime-state";
+import { recallBlock } from "@/lib/memory-store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,7 +14,12 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const messages = body.messages ?? [{ role: "user", content: body.prompt ?? "Say hello." }];
+  const baseMessages = body.messages ?? [{ role: "user", content: body.prompt ?? "Say hello." }];
+  // Inject persistent memory recall so SAHJONY remembers across sessions.
+  const recall = body.useMemory === false ? null : await recallBlock();
+  const messages = recall
+    ? [{ role: "system", content: recall }, ...baseMessages]
+    : baseMessages;
   const { baseUrl, apiKey } = endpoint();
   const chain = modelChain();
   const enc = new TextEncoder();

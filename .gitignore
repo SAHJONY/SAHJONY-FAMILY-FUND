@@ -41,3 +41,6 @@ yarn-debug.log*
 
 # local claude harness settings
 .claude/settings.local.json
+
+# SAHJONY runtime data (persistent memory store)
+/data
