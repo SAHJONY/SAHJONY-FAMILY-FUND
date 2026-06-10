@@ -161,9 +161,9 @@ export default function Dashboard() {
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">
             ⊞ CRM
           </Link>
-          <Link href="/workforce"
+          <Link href="/email"
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(63,224,255,0.3)] text-[var(--muted)] hover:text-[var(--hud)] hover:border-[var(--hud)]">
-            ⛒ Team
+            ✉ Mail
           </Link>
           <Link href="/workforce"
             className="text-[11px] tracking-[0.2em] uppercase px-3 py-2.5 border border-[rgba(255,194,75,0.4)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)]">

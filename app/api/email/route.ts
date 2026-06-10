@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       from: process.env.SMTP_USER, to,
       subject: String(body.subject ?? "(no subject)"),
       text: String(body.text ?? ""),
+      ...(body.inReplyTo ? { inReplyTo: String(body.inReplyTo), references: String(body.inReplyTo) } : {}),
     });
     return NextResponse.json({ ok: true, messageId: info.messageId });
   } catch (e) {
