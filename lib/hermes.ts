@@ -111,8 +111,21 @@ export async function hermes(command: string): Promise<HermesResult> {
       case "send_outbound":
         return { action: plan.action, ok: true, speak: `Ready to ${p.channel ?? "send"} — confirm to proceed, sir.`,
           needsConfirmation: { kind: String(p.channel ?? "outbound"), reason: "Outbound contact requires your go-ahead.", params: p } };
-      default:
-        return { action: "answer", ok: true, speak: plan.params?.text ?? plan.speak ?? "Done." };
+      case "answer":
+      default: {
+        // Capability-aware conversation so SAHJONY never denies its own systems.
+        const r = await complete([
+          { role: "system", content:
+            "You are SAHJONY, the orchestration brain (Hermes engine) of this control plane and of SAHJONY CAPITAL LLC (real-estate wholesaling). " +
+            "You ARE fully integrated — you run on Hermes as both the frontend command interface and the backend engine. " +
+            "Your live systems: deal pipeline + analyzer (ARV/MAO/grade), cash-buyer network with buying-box matching, autonomous 24/7 deal finder (licensed MLS RESO), " +
+            "address/photo enrichment (Census/Regrid/public+court records), native CRM, joint ventures, AI workforce (Vera/Marcus/Priya/Dana/Ada/Jeeves), " +
+            "email agent, DocuSign e-sign, WhatsApp, Bland.ai calls, persistent memory, and an owner-authorized browser/device control agent. " +
+            "Never claim a system is missing or unintegrated — it is all wired. Address the user as 'sir', be concise and precise." },
+          { role: "user", content: command },
+        ]);
+        return { action: "answer", ok: true, speak: r?.content ?? plan.speak ?? "At your service, sir." };
+      }
     }
   } catch (e) {
     return { action: plan.action, ok: false, speak: `That action failed: ${(e as Error).message}` };

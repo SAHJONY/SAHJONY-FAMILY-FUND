@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { askSahjonyStream, type ChatMsg } from "@/lib/ask";
+import { askHermes, type ChatMsg } from "@/lib/ask";
 
 export interface ChatHandle {
   ask: (text: string, speak: (t: string) => void) => Promise<string>;
@@ -34,18 +34,10 @@ export default function Chat({
     setInput("");
     setBusy(true);
 
-    const { reply, model: m } = await askSahjonyStream(
-      history.filter((x) => x.role !== "system").slice(-10),
-      (_chunk, soFar) => {
-        // Stream tokens into the last (assistant) bubble in real time.
-        setMsgs((cur) => {
-          const copy = cur.slice();
-          copy[copy.length - 1] = { role: "assistant", content: soFar };
-          return copy;
-        });
-      }
-    );
-    if (m) setModel(m);
+    // Route the conversation through the Hermes brain — it answers AND can
+    // execute real actions (create lead, run finder, add buyer, etc.).
+    const { reply, action } = await askHermes(clean);
+    setModel(action ? `hermes · ${action}` : "hermes");
     setMsgs((cur) => {
       const copy = cur.slice();
       copy[copy.length - 1] = { role: "assistant", content: reply };

@@ -53,6 +53,24 @@ export async function askSahjonyStream(
   }
 }
 
+// Hermes-powered turn: routes the message through the orchestration brain so a
+// conversation can also EXECUTE real actions (create lead, find deals, etc.).
+export async function askHermes(command: string): Promise<{ reply: string; action?: string; data?: unknown }> {
+  try {
+    const res = await fetch("/api/hermes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command }),
+    });
+    const j = await res.json();
+    let reply = j.speak ?? "Done, sir.";
+    if (j.needsConfirmation) reply += ` (Needs your confirmation — open Tools to proceed.)`;
+    return { reply, action: j.action, data: j.data };
+  } catch (e) {
+    return { reply: `Connection error, sir: ${(e as Error).message}` };
+  }
+}
+
 export async function askSahjony(history: ChatMsg[]): Promise<{
   reply: string;
   model?: string;
