@@ -59,6 +59,29 @@ export default function DealsPage() {
   const delDeal = async (id: string) => { await fetch(`/api/wholesale/deals?id=${id}`, { method: "DELETE" }); if (sel === id) setSel(null); loadDeals(); };
   const setStatus = async (id: string, status: string) => { await fetch("/api/wholesale/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) }); loadDeals(); };
 
+  // ---- autonomous enrichment: you give the address, SAHJONY finds the data ----
+  const [enrich, setEnrich] = useState<any>(null);
+  const [enrichBusy, setEnrichBusy] = useState(false);
+  const autoFind = async () => {
+    if (!d.address) return;
+    setEnrichBusy(true); setEnrich(null);
+    const r = await fetch("/api/wholesale/enrich", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: d.address, apn: d.apn, arv: num(d.arv), estRepairs: num(d.estRepairs), contractPrice: num(d.contractPrice), desiredFee: num(d.desiredFee) }) });
+    const j = await r.json();
+    setEnrich(j);
+    // Auto-fill verified fields from real geocode.
+    if (j.matched) {
+      const norm = j.fields.normalizedAddress?.value as string | undefined;
+      const parts = norm?.split(",").map((s: string) => s.trim()) ?? [];
+      setD((prev) => ({ ...prev,
+        address: parts[0] || prev.address,
+        city: parts[1] || prev.city,
+        state: (j.fields.state?.value as string) || prev.state,
+      }));
+    }
+    setEnrichBusy(false);
+  };
+
   // ---- add buyer form ----
   const [b, setB] = useState<Record<string, string>>({ type: "individual", strategy: "flip" });
   const setBF = (k: string) => (e: any) => setB({ ...b, [k]: e.target.value });
@@ -127,7 +150,12 @@ Matched buyers in network: ${matches.length}.`;
         <section className="hud-panel p-4">
           <h2 className="label mb-3 text-[var(--gold)]">▸ Deals & analyzer</h2>
           <div className="grid grid-cols-2 gap-2 mb-2">
-            <input className={`${F} col-span-2`} placeholder="Address" value={d.address || ""} onChange={setDF("address")} />
+            <input className={`${F} col-span-2`} placeholder="Address — then click Auto-find" value={d.address || ""} onChange={setDF("address")} />
+            <input className={F} placeholder="APN / parcel (optional)" value={d.apn || ""} onChange={setDF("apn")} />
+            <button type="button" onClick={autoFind} disabled={enrichBusy || !d.address}
+              className="text-[11px] tracking-widest uppercase border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-40">
+              {enrichBusy ? "Finding…" : "⌖ Auto-find data"}
+            </button>
             <input className={F} placeholder="City" value={d.city || ""} onChange={setDF("city")} />
             <input className={F} placeholder="State (TX)" value={d.state || ""} onChange={setDF("state")} />
             <select className={F} value={d.propertyType} onChange={setDF("propertyType")}>
@@ -151,6 +179,32 @@ Matched buyers in network: ${matches.length}.`;
             <span className="text-[11px] text-[var(--muted)]">Live MAO (70%): <span className="text-[var(--good)] hud-text">{usd(liveMao)}</span></span>
             <button onClick={addDeal} className="px-4 py-1.5 text-[11px] tracking-widest uppercase border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">+ Add deal</button>
           </div>
+
+          {enrich && (
+            <div className="border border-[rgba(255,194,75,0.3)] p-2 mb-3 text-[11px] space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: enrich.matched ? "var(--good)" : "var(--bad)" }} />
+                <span className="text-[var(--text)]">{enrich.geoDetail}</span>
+              </div>
+              {enrich.matched && (
+                <div className="hud-text text-[10px] text-[var(--muted)]">
+                  {enrich.fields.normalizedAddress?.value} · {enrich.fields.county?.value} · tract {enrich.fields.censusTract?.value}
+                  <span className="text-[var(--good)] ml-1">[census-verified]</span>
+                </div>
+              )}
+              <div>
+                <div className="label text-[var(--muted)] mb-1">Authoritative sources (open to pull ARV / comps / owner)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {enrich.sources?.map((s: any) => (
+                    <a key={s.label} href={s.url} target="_blank" rel="noreferrer" title={s.note}
+                      className="text-[10px] px-2 py-1 border border-[rgba(63,224,255,0.3)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">{s.label} ↗</a>
+                  ))}
+                </div>
+              </div>
+              {enrich.analysis && <div className="border-t border-[rgba(255,194,75,0.2)] pt-2 text-[var(--text)] leading-relaxed">{enrich.analysis}</div>}
+              <div className="text-[9px] text-[var(--muted)] uppercase tracking-wide">{enrich.note}</div>
+            </div>
+          )}
 
           <div className="space-y-2 max-h-[420px] overflow-y-auto">
             {deals.length === 0 ? <span className="text-[11px] text-[var(--muted)]">No deals yet.</span> :
