@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JARVIS · Control Plane",
+  title: "SAHJONY · Control Plane",
   description: "Hybrid cloud/local executive control plane",
 };
 

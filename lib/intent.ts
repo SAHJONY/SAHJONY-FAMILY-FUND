@@ -74,8 +74,8 @@ const SPECS: IntentSpec[] = [
   },
   {
     name: "GREETING",
-    concepts: { hello: 3, hey: 3, jarvis: 1, hi: 3, "you there": 2, online: 1 },
-    response: "Online and listening.",
+    concepts: { hello: 3, hey: 3, sahjony: 1, jarvis: 1, hi: 3, "you there": 2, online: 1 },
+    response: "Online and listening, sir.",
   },
 ];
 

@@ -19,8 +19,12 @@ interface SpeechRecognitionLike extends EventTarget {
 
 export default function VoiceEngine({
   onIntent,
+  onConverse,
 }: {
   onIntent: (intent: IntentName, raw: string, confidence: number) => string | void;
+  // Called for free-form speech that isn't a dashboard command, so SAHJONY can
+  // answer conversationally. It receives the speak() fn to voice its reply.
+  onConverse?: (text: string, speak: (t: string) => void) => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [state, setState] = useState<VoiceState>("idle");
@@ -67,8 +71,15 @@ export default function VoiceEngine({
         setState("processing");
         const result = parseIntent(final);
         setLastIntent(`${result.intent} · ${(result.confidence * 100) | 0}%`);
-        const reply = onIntent(result.intent, result.raw, result.confidence);
-        speak(typeof reply === "string" ? reply : result.response);
+        // Confident command → run it. Otherwise hand to SAHJONY to converse.
+        if (result.intent !== "UNKNOWN" && result.confidence >= 0.5) {
+          const reply = onIntent(result.intent, result.raw, result.confidence);
+          speak(typeof reply === "string" ? reply : result.response);
+        } else if (onConverse) {
+          onConverse(result.raw, speak);
+        } else {
+          speak(result.response);
+        }
       }
     };
     r.onerror = () => setState("idle");
@@ -114,9 +125,9 @@ export default function VoiceEngine({
 
   if (!supported) {
     return (
-      <div className="panel p-4 text-sm">
-        <div className="text-[var(--warn)] font-semibold mb-1">Voice unavailable</div>
-        <p className="text-[var(--muted)]">
+      <div className="hud-panel p-4 text-sm">
+        <div className="text-[var(--warn)] font-semibold mb-1 label">Voice unavailable</div>
+        <p className="text-[var(--muted)] text-xs">
           This browser does not expose the Web Speech API. Use Chrome or Safari for
           hands-free control.
         </p>
@@ -127,33 +138,33 @@ export default function VoiceEngine({
   const dot =
     state === "listening" ? "var(--good)" :
     state === "processing" ? "var(--warn)" :
-    state === "speaking" ? "var(--accent)" : "var(--muted)";
+    state === "speaking" ? "var(--hud)" : "var(--muted)";
 
   return (
-    <div className="panel p-4 relative overflow-hidden">
+    <div className="hud-panel p-4 relative overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span
-            className={`inline-block w-2.5 h-2.5 rounded-full ${state !== "idle" ? "pulse" : ""}`}
-            style={{ background: dot }}
+            className={`inline-block w-2.5 h-2.5 rounded-full ${state !== "idle" ? "blink" : ""}`}
+            style={{ background: dot, boxShadow: `0 0 8px ${dot}` }}
           />
-          <span className="text-sm font-semibold tracking-wide">VOICE ENGINE</span>
-          <span className="text-xs text-[var(--muted)] uppercase">{state}</span>
+          <span className="label">SAHJONY · VOICE</span>
+          <span className="text-[10px] text-[var(--muted)] uppercase tracking-widest">{state}</span>
         </div>
         <button
           onClick={toggle}
-          className="text-xs px-3 py-1.5 rounded-md border border-[var(--border)] hover:border-[var(--accent)] transition-colors"
+          className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)] transition-colors"
         >
           {wantListening.current ? "Stop" : "Listen"}
         </button>
       </div>
-      <div className="mono text-xs text-[var(--muted)] min-h-[2.5rem]">
-        {transcript || "Say: “Jarvis, evaluate my local processing speed”"}
+      <div className="hud-text text-xs text-[var(--muted)] min-h-[2.5rem] leading-relaxed">
+        {transcript || "Say: “Sahjony, evaluate my local processing speed”"}
       </div>
       {lastIntent && (
-        <div className="mt-2 text-xs">
+        <div className="mt-2 text-[10px] tracking-widest uppercase">
           <span className="text-[var(--muted)]">intent </span>
-          <span className="text-[var(--accent-2)] mono">{lastIntent}</span>
+          <span className="text-[var(--hud)] hud-text">{lastIntent}</span>
         </div>
       )}
     </div>

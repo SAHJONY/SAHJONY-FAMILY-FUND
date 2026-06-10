@@ -1,4 +1,4 @@
-# JARVIS — Executive Control Plane
+# SAHJONY — Executive Control Plane
 
 A hybrid local/cloud monitoring dashboard built on Next.js (App Router) with a
 client-side voice command engine and a graceful, fallback-capable inference proxy.
