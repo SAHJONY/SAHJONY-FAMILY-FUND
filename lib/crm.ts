@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // Native CRM + Joint Venture store for SAHJONY CAPITAL. File-backed (./data).
 // Contacts are the owner's own relationships (sellers who reached out, buyers,
 // agents, title, contractors, JV partners) — owner-entered, not harvested.
@@ -36,7 +37,7 @@ export interface JointVenture {
   createdAt: number;
 }
 
-function file(name: string) { return path.join(process.cwd(), "data", name); }
+function file(name: string) { return dataPath(name); }
 async function read<T>(name: string): Promise<T[]> {
   try { const r = await fs.readFile(file(name), "utf8"); const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch { return []; }
 }

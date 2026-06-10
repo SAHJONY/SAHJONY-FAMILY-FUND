@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // SAHJONY persistent memory — a durable, file-backed fact store.
 //
 // Each memory is a small tagged fact that survives restarts (written to
@@ -16,7 +17,7 @@ export interface Memory {
   createdAt: number;
 }
 
-const FILE = path.join(process.cwd(), "data", "sahjony-memory.json");
+const FILE = dataPath("sahjony-memory.json");
 
 async function readAll(): Promise<Memory[]> {
   try {

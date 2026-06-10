@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // SAHJONY workforce — a roster of specialized AI workers. Each worker is a role
 // + system prompt that runs on the brain (model rotation). Tasks are file-backed
 // so assignments and results persist. This is the "team" running the business
@@ -38,7 +39,7 @@ export interface WorkforceTask {
   createdAt: number;
 }
 
-const FILE = path.join(process.cwd(), "data", "workforce-tasks.json");
+const FILE = dataPath("workforce-tasks.json");
 async function read(): Promise<WorkforceTask[]> {
   try { const r = await fs.readFile(FILE, "utf8"); const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch { return []; }
 }

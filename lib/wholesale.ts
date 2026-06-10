@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // SAHJONY wholesaling engine — deal pipeline, buyer network, deal math, and
 // buying-box matching. File-backed (./data), like the memory store.
 //
@@ -58,7 +59,7 @@ export interface Buyer {
 }
 
 function file(name: string) {
-  return path.join(process.cwd(), "data", name);
+  return dataPath(name);
 }
 async function read<T>(name: string): Promise<T[]> {
   try {

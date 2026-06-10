@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { dataPath } from "@/lib/paths";
 import { complete } from "@/lib/infer";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
 // SANDBOXED workspace (data/workspace) only — path traversal is blocked so it
 // can never touch the rest of the system. Real builds, contained.
 
-const ROOT = path.join(process.cwd(), "data", "workspace");
+const ROOT = dataPath("workspace");
 
 function safePath(rel: string): string | null {
   const clean = path.normalize(rel).replace(/^(\.\.(\/|\\|$))+/, "");

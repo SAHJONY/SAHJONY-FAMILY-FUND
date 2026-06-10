@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // SAHJONY autonomous deal finder — the 24/7 engine.
 //
 // It runs on a schedule (locally via interval; in production via Vercel Cron
@@ -34,8 +35,8 @@ export interface FinderRun {
   note: string;
 }
 
-const CFG = path.join(process.cwd(), "data", "finder-config.json");
-const LOG = path.join(process.cwd(), "data", "finder-log.json");
+const CFG = dataPath("finder-config.json");
+const LOG = dataPath("finder-log.json");
 
 const DEFAULT: FinderConfig = {
   enabled: false, markets: [], minPrice: 0, maxPrice: 0, minBeds: 0,

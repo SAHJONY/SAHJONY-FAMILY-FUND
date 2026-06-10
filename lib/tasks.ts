@@ -1,3 +1,4 @@
+import { dataPath } from "./paths";
 // Personal task / reminder store for SAHJONY-as-assistant. File-backed (./data).
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -12,7 +13,7 @@ export interface Task {
   createdAt: number;
 }
 
-const FILE = path.join(process.cwd(), "data", "tasks.json");
+const FILE = dataPath("tasks.json");
 async function read(): Promise<Task[]> {
   try { const r = await fs.readFile(FILE, "utf8"); const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch { return []; }
 }
