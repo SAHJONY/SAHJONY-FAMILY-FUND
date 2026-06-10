@@ -1,0 +1,36 @@
+# Local NVIDIA NIM inference microservice (Section 4).
+#
+# REQUIREMENTS — this will NOT run on a Mac / AMD GPU. It needs:
+#   - An NVIDIA GPU with sufficient VRAM for the chosen model
+#   - NVIDIA driver + nvidia-container-toolkit installed
+#   - An NGC API key (set NGC_API_KEY in your environment) and `docker login nvcr.io`
+#
+# On this host (AMD Radeon Pro 5300 / macOS) use the cloud fallback instead:
+# set CLOUD_LLM_BASE_URL / CLOUD_LLM_API_KEY in .env.local, or run Ollama and
+# point NIM_BASE_URL at http://localhost:11434/v1.
+#
+# Start (on a CUDA host):  NGC_API_KEY=... docker compose up -d
+services:
+  nim:
+    image: nvcr.io/nim/meta/llama-3.1-8b-instruct:latest
+    container_name: jarvis-nim
+    runtime: nvidia
+    environment:
+      - NGC_API_KEY=${NGC_API_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nim-cache:/opt/nim/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped

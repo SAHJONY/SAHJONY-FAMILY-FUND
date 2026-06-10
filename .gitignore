@@ -1,0 +1,43 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# env & secrets — never commit
+.env
+.env.local
+.env*.local
+*.pem
+*.key
+
+# device enrollment / session tokens
+/secrets
+enroll-token*
+
+# docker volumes & NIM model weight caches (can be many GB)
+/docker-volumes
+/nim-cache
+/.cache/nim
+*.nemo
+*.safetensors
+*.gguf
+
+# logs & os
+npm-debug.log*
+yarn-debug.log*
+.DS_Store
+*.log
+
+# vercel
+.vercel
+
+# local claude harness settings
+.claude/settings.local.json
