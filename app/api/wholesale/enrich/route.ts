@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geocode, sourceLinks } from "@/lib/enrich";
+import { geocode, sourceLinks, recordsLinks } from "@/lib/enrich";
+import { regridByPoint, regridByAddress, regridConnected } from "@/lib/regrid";
 import { complete } from "@/lib/infer";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,19 @@ export async function POST(req: NextRequest) {
 
   const geo = await geocode(address);
   const links = sourceLinks(geo.normalizedAddress || address, geo.state, geo.county);
+  const records = recordsLinks(geo.normalizedAddress || address, geo.state, geo.county);
+
+  // Real licensed parcel data via Regrid, if connected. Fills owner/APN/assessed
+  // value with REAL records — never invented.
+  let regrid = null;
+  if (regridConnected()) {
+    const r = geo.matched && geo.lat != null && geo.lon != null
+      ? await regridByPoint(geo.lat, geo.lon)
+      : await regridByAddress(address);
+    regrid = r.ok ? { connected: true, ...r.parcel, detail: r.detail } : { connected: true, error: r.detail };
+  } else {
+    regrid = { connected: false, detail: "Set REGRID_API_TOKEN to auto-pull real parcel data (owner/APN/assessed value)." };
+  }
 
   // Known numbers the owner already has (optional). Anything absent stays unknown.
   const arv = Number(body.arv) || 0;
@@ -34,7 +48,10 @@ export async function POST(req: NextRequest) {
     state: { value: geo.state ?? null, provenance: geo.matched ? "census" : "needs_source" },
     coordinates: { value: geo.matched ? `${geo.lat}, ${geo.lon}` : null, provenance: geo.matched ? "census" : "needs_source" },
     censusTract: { value: geo.tract ?? null, provenance: geo.matched ? "census" : "needs_source" },
-    apn: { value: apn || null, provenance: apn ? "owner" : "needs_source" },
+    apn: { value: apn || (regrid as any)?.apn || null, provenance: apn ? "owner" : (regrid as any)?.apn ? "regrid" : "needs_source" },
+    ownerOfRecord: { value: (regrid as any)?.owner || null, provenance: (regrid as any)?.owner ? "regrid" : "needs_source" },
+    assessedValue: { value: (regrid as any)?.assessedValue || null, provenance: (regrid as any)?.assessedValue ? "regrid" : "needs_source" },
+    yearBuilt: { value: (regrid as any)?.yearBuilt || null, provenance: (regrid as any)?.yearBuilt ? "regrid" : "needs_source" },
     arv: { value: arv || null, provenance: arv ? "owner" : "needs_source" },
     estRepairs: { value: repairs || null, provenance: repairs ? "owner" : "needs_source" },
   };
@@ -57,7 +74,9 @@ Assess the spread, a realistic assignment fee, and the single best next step.` }
     matched: geo.matched,
     geoDetail: geo.detail,
     fields,
+    regrid,
     sources: links,
+    records,
     analysis,
     note: haveNumbers
       ? "Address verified live. Confirm ARV/repairs against your licensed sources before assigning."

@@ -63,3 +63,20 @@ export function sourceLinks(address: string, state?: string, county?: string) {
     { label: "Google Maps", url: `https://www.google.com/maps/search/?api=1&query=${q}`, note: "Street view / condition / neighborhood." },
   ];
 }
+
+// Official public-record & court portals for property-level due diligence
+// (liens, pre-foreclosure/lis pendens, probate, tax sale, code enforcement,
+// bankruptcy). These are official channels for PROPERTY due diligence — not
+// person investigations, and not scraped.
+export function recordsLinks(address: string, state?: string, county?: string) {
+  const loc = `${county ?? ""} ${state ?? ""}`.trim();
+  const g = (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+  return [
+    { label: "County recorder / deeds", url: g(`${loc} county recorder of deeds official records search`), note: "Deeds, mortgages, liens, lis pendens." },
+    { label: "Tax assessor / collector", url: g(`${loc} county tax assessor collector property search delinquent`), note: "Assessed value, delinquent taxes, tax sale." },
+    { label: "Clerk of court records", url: g(`${loc} clerk of court official public records search`), note: "Civil/probate/foreclosure case search." },
+    { label: "Probate court", url: g(`${loc} probate court case search`), note: "Estates — common motivated-seller situation." },
+    { label: "Code enforcement", url: g(`${loc} city code enforcement violation property search`), note: "Violations indicating distress." },
+    { label: "PACER (federal/bankruptcy)", url: "https://pacer.uscourts.gov/", note: "Federal court & bankruptcy records (official)." },
+  ];
+}

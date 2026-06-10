@@ -82,6 +82,25 @@ export default function DealsPage() {
     setEnrichBusy(false);
   };
 
+  // ---- photo → address (reads GPS from a photo you took) ----
+  const [photoMsg, setPhotoMsg] = useState<string | null>(null);
+  const onPhoto = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setPhotoMsg("Reading photo GPS…");
+      const r = await fetch("/api/wholesale/photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: reader.result }) });
+      const j = await r.json();
+      if (j.located) {
+        setD((prev) => ({ ...prev, address: j.address?.split(",")[0] || prev.address, city: j.city || prev.city, state: j.state || prev.state }));
+        setPhotoMsg(`Located: ${j.address}`);
+        setTimeout(() => autoFind(), 300);
+      } else {
+        setPhotoMsg(j.detail);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // ---- add buyer form ----
   const [b, setB] = useState<Record<string, string>>({ type: "individual", strategy: "flip" });
   const setBF = (k: string) => (e: any) => setB({ ...b, [k]: e.target.value });
@@ -156,6 +175,11 @@ Matched buyers in network: ${matches.length}.`;
               className="text-[11px] tracking-widest uppercase border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-40">
               {enrichBusy ? "Finding…" : "⌖ Auto-find data"}
             </button>
+            <label className="col-span-2 text-[10px] tracking-widest uppercase border border-[rgba(63,224,255,0.3)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.08)] px-2 py-1.5 cursor-pointer text-center">
+              ◎ Photo → address (uses the GPS in your photo)
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onPhoto(e.target.files[0])} />
+            </label>
+            {photoMsg && <div className="col-span-2 text-[10px] text-[var(--muted)]">{photoMsg}</div>}
             <input className={F} placeholder="City" value={d.city || ""} onChange={setDF("city")} />
             <input className={F} placeholder="State (TX)" value={d.state || ""} onChange={setDF("state")} />
             <select className={F} value={d.propertyType} onChange={setDF("propertyType")}>
@@ -192,12 +216,35 @@ Matched buyers in network: ${matches.length}.`;
                   <span className="text-[var(--good)] ml-1">[census-verified]</span>
                 </div>
               )}
+              {enrich.regrid?.connected && !enrich.regrid.error && (enrich.regrid.owner || enrich.regrid.apn || enrich.regrid.assessedValue) && (
+                <div className="border border-[rgba(70,244,176,0.3)] p-1.5">
+                  <div className="label text-[var(--good)] mb-1">Regrid parcel [licensed · real]</div>
+                  <div className="hud-text text-[10px] text-[var(--text)] grid grid-cols-2 gap-x-3">
+                    {enrich.regrid.owner && <span>Owner: {enrich.regrid.owner}</span>}
+                    {enrich.regrid.apn && <span>APN: {enrich.regrid.apn}</span>}
+                    {enrich.regrid.assessedValue && <span>Assessed: ${Number(enrich.regrid.assessedValue).toLocaleString()}</span>}
+                    {enrich.regrid.yearBuilt && <span>Built: {enrich.regrid.yearBuilt}</span>}
+                  </div>
+                </div>
+              )}
+              {enrich.regrid && !enrich.regrid.connected && (
+                <div className="text-[10px] text-[var(--muted)]">{enrich.regrid.detail}</div>
+              )}
               <div>
-                <div className="label text-[var(--muted)] mb-1">Authoritative sources (open to pull ARV / comps / owner)</div>
+                <div className="label text-[var(--muted)] mb-1">Authoritative sources (ARV / comps / owner)</div>
                 <div className="flex flex-wrap gap-1.5">
                   {enrich.sources?.map((s: any) => (
                     <a key={s.label} href={s.url} target="_blank" rel="noreferrer" title={s.note}
                       className="text-[10px] px-2 py-1 border border-[rgba(63,224,255,0.3)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">{s.label} ↗</a>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="label text-[var(--muted)] mb-1">Public &amp; court records (due diligence)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {enrich.records?.map((s: any) => (
+                    <a key={s.label} href={s.url} target="_blank" rel="noreferrer" title={s.note}
+                      className="text-[10px] px-2 py-1 border border-[rgba(255,194,75,0.3)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.1)]">{s.label} ↗</a>
                   ))}
                 </div>
               </div>

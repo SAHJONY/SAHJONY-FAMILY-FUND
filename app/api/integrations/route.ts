@@ -23,6 +23,12 @@ export async function GET() {
         url: process.env.PROPSTREAM_URL || "https://login.propstream.com",
         detail: "Launch link. PropStream has no public API; export CSV and import here.",
       },
+      regrid: {
+        connected: !!process.env.REGRID_API_TOKEN,
+        detail: process.env.REGRID_API_TOKEN
+          ? "Regrid connected — real parcel data auto-fills on Auto-find."
+          : "Set REGRID_API_TOKEN for real nationwide parcel data (owner/APN/assessed value).",
+      },
     },
     { headers: { "Cache-Control": "no-store" } }
   );
