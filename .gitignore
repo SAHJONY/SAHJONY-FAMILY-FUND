@@ -44,3 +44,6 @@ yarn-debug.log*
 
 # SAHJONY runtime data (persistent memory store)
 /data
+
+# sandboxed dev workspace
+/data/workspace

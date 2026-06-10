@@ -16,6 +16,38 @@ export default function IntegrationsPage() {
   const [i, setI] = useState<Integrations | null>(null);
   useEffect(() => { fetch("/api/integrations", { cache: "no-store" }).then((r) => r.json()).then(setI); }, []);
 
+  // Email agent
+  const [email, setEmail] = useState<any>(null);
+  const [emTo, setEmTo] = useState(""); const [emPrompt, setEmPrompt] = useState("");
+  const [emDraft, setEmDraft] = useState(""); const [emConsent, setEmConsent] = useState(false);
+  const [emMsg, setEmMsg] = useState<string | null>(null);
+  const [inbox, setInbox] = useState<any>(null);
+  useEffect(() => { fetch("/api/email").then((r) => r.json()).then(setEmail); }, []);
+  const draftEmail = async () => {
+    setEmMsg("Drafting…");
+    const j = await (await fetch("/api/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "draft", to: emTo, prompt: emPrompt }) })).json();
+    setEmDraft(j.draft ?? j.error ?? ""); setEmMsg(null);
+  };
+  const sendEmail = async () => {
+    const lines = emDraft.split("\n");
+    const subject = (lines[0].match(/^subject:\s*(.*)/i)?.[1]) ?? "(no subject)";
+    const text = lines.slice(1).join("\n").trim() || emDraft;
+    setEmMsg("Sending…");
+    const j = await (await fetch("/api/email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: emTo, subject, text, consent: emConsent }) })).json();
+    setEmMsg(j.ok ? "Sent ✓" : (j.error ?? "Failed"));
+  };
+  const loadInbox = async () => { setInbox({ loading: true }); setInbox(await (await fetch("/api/email/inbox", { cache: "no-store" })).json()); };
+
+  // MLS
+  const [mls, setMls] = useState<any>(null);
+  const [mq, setMq] = useState<Record<string, string>>({});
+  const [mlsRes, setMlsRes] = useState<any>(null);
+  useEffect(() => { fetch("/api/mls").then((r) => r.json()).then(setMls); }, []);
+  const searchMls = async () => {
+    setMlsRes({ loading: true });
+    setMlsRes(await (await fetch("/api/mls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ city: mq.city, state: mq.state, minPrice: Number(mq.minPrice) || 0, maxPrice: Number(mq.maxPrice) || 0, minBeds: Number(mq.minBeds) || 0 }) })).json());
+  };
+
   // Driving for dollars
   const [addr, setAddr] = useState({ address: "", city: "", state: "" });
   const [d4dMsg, setD4dMsg] = useState<string | null>(null);
@@ -72,6 +104,58 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Email agent */}
+        <section className={card}>
+          <h2 className="label mb-2 text-[var(--gold)] flex items-center gap-2"><Dot on={!!email?.connected} /> Email agent</h2>
+          <p className="text-[11px] text-[var(--muted)] mb-2">{email?.connected ? `Connected as ${email.from}` : "Set SMTP_HOST/USER/PASS (+ IMAP_* to read) on the env page."}</p>
+          <input className={`${F} w-full mb-1.5`} placeholder="To" value={emTo} onChange={(e) => setEmTo(e.target.value)} />
+          <input className={`${F} w-full mb-1.5`} placeholder="What's the email about? (SAHJONY drafts it)" value={emPrompt} onChange={(e) => setEmPrompt(e.target.value)} />
+          <div className="flex gap-2 mb-2">
+            <button onClick={draftEmail} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[var(--hud)] text-[var(--hud)]">Draft</button>
+            <button onClick={loadInbox} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[rgba(63,224,255,0.3)] text-[var(--muted)]">Read inbox</button>
+          </div>
+          {emDraft && <textarea className={`${F} w-full h-24 mb-1`} value={emDraft} onChange={(e) => setEmDraft(e.target.value)} />}
+          {emDraft && (
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-[10px] text-[var(--gold)]"><input type="checkbox" checked={emConsent} onChange={(e) => setEmConsent(e.target.checked)} /> Confirm send</label>
+              <button onClick={sendEmail} disabled={!emConsent} className="text-[10px] tracking-widest uppercase px-3 py-1 border border-[var(--good)] text-[var(--good)] disabled:opacity-40">Send</button>
+              {emMsg && <span className="text-[10px] text-[var(--text)]">{emMsg}</span>}
+            </div>
+          )}
+          {inbox?.messages && (
+            <div className="mt-2 space-y-0.5 max-h-32 overflow-y-auto text-[10px]">
+              {inbox.messages.map((m: any, k: number) => <div key={k} className="text-[var(--muted)] truncate"><span className="text-[var(--hud)]">{m.fromName || m.from}</span> — {m.subject}</div>)}
+            </div>
+          )}
+          {inbox?.detail && <div className="text-[10px] text-[var(--muted)] mt-1">{inbox.detail}</div>}
+        </section>
+
+        {/* MLS */}
+        <section className={card}>
+          <h2 className="label mb-2 text-[var(--gold)] flex items-center gap-2"><Dot on={!!mls?.connected} /> MLS (RESO Web API)</h2>
+          <p className="text-[11px] text-[var(--muted)] mb-2">{mls?.connected ? "Licensed MLS feed connected." : "No free MLS API exists. Add your licensed MLS_RESO_URL + MLS_RESO_TOKEN on the env page; until then, public on-market searches below."}</p>
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
+            <input className={F} placeholder="City" value={mq.city || ""} onChange={(e) => setMq({ ...mq, city: e.target.value })} />
+            <input className={F} placeholder="State" value={mq.state || ""} onChange={(e) => setMq({ ...mq, state: e.target.value })} />
+            <input className={F} placeholder="Min beds" value={mq.minBeds || ""} onChange={(e) => setMq({ ...mq, minBeds: e.target.value })} />
+            <input className={F} placeholder="Min $" value={mq.minPrice || ""} onChange={(e) => setMq({ ...mq, minPrice: e.target.value })} />
+            <input className={F} placeholder="Max $" value={mq.maxPrice || ""} onChange={(e) => setMq({ ...mq, maxPrice: e.target.value })} />
+            <button onClick={searchMls} className="text-[10px] tracking-widest uppercase border border-[var(--hud)] text-[var(--hud)]">Find</button>
+          </div>
+          {mlsRes?.listings && (
+            <div className="space-y-0.5 max-h-40 overflow-y-auto text-[10px]">
+              {mlsRes.listings.length === 0 ? <span className="text-[var(--muted)]">No active listings.</span> :
+                mlsRes.listings.map((l: any, k: number) => <div key={k} className="flex justify-between hud-text"><span className="text-[var(--text)] truncate">{l.address}, {l.city}</span><span className="text-[var(--good)]">${(l.price || 0).toLocaleString()}</span></div>)}
+            </div>
+          )}
+          {mlsRes?.publicSearches && (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {mlsRes.publicSearches.map((s: any) => <a key={s.label} href={s.url} target="_blank" rel="noreferrer" className="text-[10px] px-2 py-1 border border-[rgba(63,224,255,0.3)] text-[var(--hud)]">{s.label} ↗</a>)}
+            </div>
+          )}
+          {mlsRes?.detail && <div className="text-[10px] text-[var(--muted)] mt-1">{mlsRes.detail}</div>}
+        </section>
+
         {/* PropStream */}
         <section className={card}>
           <h2 className="label mb-2 text-[var(--gold)]">▸ PropStream</h2>
