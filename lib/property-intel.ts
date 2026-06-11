@@ -2,7 +2,7 @@
 // REAL providers: US Census (location), Regrid (parcel), ATTOM (detail, AVM,
 // tax, comps). Each datum carries its source. No scraping, no skip tracing.
 
-import { geocode } from "./enrich";
+import { geocode, listingLinks, recordsLinks } from "./enrich";
 import { regridByPoint, regridByAddress, regridConnected } from "./regrid";
 import { attomProperty, attomConnected } from "./attom";
 
@@ -39,6 +39,8 @@ export interface PropertyIntel {
     lastSaleDate: IntelField<string>;
   };
   sources: { census: boolean; regrid: boolean; attom: boolean };
+  listings: { label: string; url: string }[];
+  records: { label: string; url: string; note: string }[];
   notes: string[];
 }
 
@@ -93,6 +95,8 @@ export async function propertyIntel(address: string): Promise<PropertyIntel> {
       lastSaleDate: f(attom?.lastSaleDate ?? null, "attom"),
     },
     sources: { census: geo.matched, regrid: !!parcel, attom: !!(attom && !attom.error) },
+    listings: listingLinks(parts[1] || "", geo.state || ""),
+    records: recordsLinks(geo.normalizedAddress || address, geo.state, geo.county),
     notes,
   };
 }

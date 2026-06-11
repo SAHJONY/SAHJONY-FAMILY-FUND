@@ -67,6 +67,28 @@ export default function PropertyIntel() {
           </div>
         </div>
       )}
+      {d && !d.error && (d.listings?.length || d.records?.length) && (
+        <div className="mt-3 space-y-2">
+          <div>
+            <div className="text-[9px] text-[var(--hud)] uppercase tracking-widest mb-1">Listings &amp; FSBO (Zillow + others)</div>
+            <div className="flex flex-wrap gap-1.5">
+              {d.listings.map((s: any) => (
+                <a key={s.label} href={s.url} target="_blank" rel="noreferrer"
+                  className="text-[10px] px-2 py-1 border border-[rgba(63,224,255,0.3)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.1)]">{s.label} ↗</a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[9px] text-[var(--gold)] uppercase tracking-widest mb-1">Public &amp; county records (nationwide, official portals)</div>
+            <div className="flex flex-wrap gap-1.5">
+              {d.records.map((s: any) => (
+                <a key={s.label} href={s.url} target="_blank" rel="noreferrer" title={s.note}
+                  className="text-[10px] px-2 py-1 border border-[rgba(255,194,75,0.3)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.1)]">{s.label} ↗</a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {d?.error && <div className="text-[11px] text-[var(--bad)]">{d.error}</div>}
       {d?.notes?.length > 0 && (
         <div className="text-[9px] text-[var(--gold)] mt-2 leading-relaxed">{d.notes.join(" · ")}</div>

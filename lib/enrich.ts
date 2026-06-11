@@ -64,6 +64,24 @@ export function sourceLinks(address: string, state?: string, county?: string) {
   ];
 }
 
+// Listing & FSBO sites for a market — official public-facing search pages
+// (launchers, not scrapers). Use to eyeball on-market/FSBO comps and condition.
+export function listingLinks(city: string, state: string) {
+  const q = encodeURIComponent(`${city} ${state}`.trim());
+  const cs = encodeURIComponent(`${city}_${state}`);
+  return [
+    { label: "Zillow", url: `https://www.zillow.com/homes/${q}_rb/` },
+    { label: "Zillow FSBO", url: `https://www.zillow.com/homes/fsbo/${q}_rb/` },
+    { label: "Redfin", url: `https://www.redfin.com/city/search?location=${q}` },
+    { label: "Realtor.com", url: `https://www.realtor.com/realestateandhomes-search/${cs}` },
+    { label: "Trulia", url: `https://www.trulia.com/for_sale/${q}/` },
+    { label: "Homes.com", url: `https://www.homes.com/${q}/` },
+    { label: "FSBO.com", url: `https://fsbo.com/listings/?location=${q}` },
+    { label: "Auction.com", url: `https://www.auction.com/residential/${encodeURIComponent(state)}/` },
+    { label: "HUD Homes", url: `https://www.hudhomestore.gov/Listing/PropertySearch.aspx` },
+  ];
+}
+
 // Official public-record & court portals for property-level due diligence
 // (liens, pre-foreclosure/lis pendens, probate, tax sale, code enforcement,
 // bankruptcy). These are official channels for PROPERTY due diligence — not
@@ -77,6 +95,7 @@ export function recordsLinks(address: string, state?: string, county?: string) {
     { label: "Clerk of court records", url: g(`${loc} clerk of court official public records search`), note: "Civil/probate/foreclosure case search." },
     { label: "Probate court", url: g(`${loc} probate court case search`), note: "Estates — common motivated-seller situation." },
     { label: "Code enforcement", url: g(`${loc} city code enforcement violation property search`), note: "Violations indicating distress." },
+    { label: "County GIS / parcel viewer", url: g(`${loc} county GIS parcel viewer map`), note: "Official parcel maps, dimensions, zoning." },
     { label: "PACER (federal/bankruptcy)", url: "https://pacer.uscourts.gov/", note: "Federal court & bankruptcy records (official)." },
   ];
 }
