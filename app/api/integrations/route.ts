@@ -29,6 +29,12 @@ export async function GET() {
           ? "Regrid connected — real parcel data auto-fills on Auto-find."
           : "Set REGRID_API_TOKEN for real nationwide parcel data (owner/APN/assessed value).",
       },
+      attom: {
+        connected: !!process.env.ATTOM_API_KEY,
+        detail: process.env.ATTOM_API_KEY
+          ? "ATTOM connected — building detail, AVM valuation, tax & comps auto-fill (the PropStream data engine)."
+          : "Set ATTOM_API_KEY for PropStream-style data: property detail, AVM valuation, tax/assessment, comps.",
+      },
       docusign: {
         connected: !!(process.env.DOCUSIGN_BASE_URI && process.env.DOCUSIGN_ACCOUNT_ID && process.env.DOCUSIGN_TOKEN),
         detail: "E-sign contracts via email or embedded online signing. Set DOCUSIGN_BASE_URI/ACCOUNT_ID/TOKEN.",

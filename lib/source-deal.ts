@@ -8,6 +8,7 @@
 
 import { geocode } from "./enrich";
 import { regridByPoint, regridByAddress, regridConnected } from "./regrid";
+import { attomProperty, attomConnected } from "./attom";
 import { upsertDeal, analyzeDeal, type Deal } from "./wholesale";
 
 export interface SourcedDeal {
@@ -25,24 +26,34 @@ export async function sourceDealFromAddress(
 ): Promise<SourcedDeal> {
   const geo = await geocode(address);
 
-  let parcel: any = null;
-  if (regridConnected()) {
-    const r = geo.matched && geo.lat != null && geo.lon != null
-      ? await regridByPoint(geo.lat, geo.lon)
-      : await regridByAddress(address);
-    if (r.ok) parcel = r.parcel;
-  }
+  const norm0 = geo.normalizedAddress || address;
+  const [regridRes, attom] = await Promise.all([
+    regridConnected()
+      ? (geo.matched && geo.lat != null && geo.lon != null ? regridByPoint(geo.lat, geo.lon) : regridByAddress(address))
+      : Promise.resolve(null),
+    attomConnected() ? attomProperty(norm0) : Promise.resolve(null),
+  ]);
+  const parcel: any = regridRes?.ok ? regridRes.parcel : null;
+  const a: any = attom && !attom.error ? attom : null;
 
-  const norm = geo.normalizedAddress || address;
-  const parts = norm.split(",").map((s) => s.trim());
+  const parts = norm0.split(",").map((s) => s.trim());
   const apn = extra.apn || parcel?.apn || "";
+  const owner = parcel?.owner || a?.owner || "";
+  const assessed = a?.assessedValue || parcel?.assessedValue || 0;
+  const yearBuilt = a?.yearBuilt || parcel?.yearBuilt || 0;
+  const sqft = a?.sqft || parcel?.sqft || 0;
+  // ATTOM AVM is a real AS-IS valuation (not ARV). Surfaced as a reference; ARV
+  // still needs comp judgment, so we don't silently set arv from it.
+  const avm = a?.avm || 0;
 
   const deal = await upsertDeal({
     address: parts[0] || address,
     city: parts[1] || "",
     state: geo.state || "",
-    propertyType: "SFR",
-    sqft: Number(parcel?.sqft) || 0,
+    propertyType: a?.propertyType || "SFR",
+    beds: Number(a?.beds) || 0,
+    baths: Number(a?.baths) || 0,
+    sqft: Number(sqft) || 0,
     arv: Number(extra.arv) || 0,
     estRepairs: Number(extra.estRepairs) || 0,
     contractPrice: Number(extra.contractPrice) || 0,
@@ -51,19 +62,26 @@ export async function sourceDealFromAddress(
     status: "lead",
     notes: [
       geo.matched ? `Census-verified · ${geo.county ?? ""} · tract ${geo.tract ?? "?"}` : "Address unverified",
-      parcel?.owner ? `Owner: ${parcel.owner}` : "",
+      owner ? `Owner: ${owner}` : "",
       apn ? `APN: ${apn}` : "",
-      parcel?.assessedValue ? `Assessed: $${Number(parcel.assessedValue).toLocaleString()}` : "",
-      parcel?.yearBuilt ? `Built: ${parcel.yearBuilt}` : "",
+      avm ? `AVM (as-is): $${Number(avm).toLocaleString()}` : "",
+      assessed ? `Assessed: $${Number(assessed).toLocaleString()}` : "",
+      yearBuilt ? `Built: ${yearBuilt}` : "",
+      a?.lastSalePrice ? `Last sale: $${Number(a.lastSalePrice).toLocaleString()} (${a.lastSaleDate ?? "?"})` : "",
     ].filter(Boolean).join(" · "),
     motivation: "Auto-sourced by Hermes from address",
   });
 
   const autoFilled = [
     geo.matched && "address", geo.matched && "city", geo.matched && "state", geo.matched && "county/coords",
-    parcel?.owner && "owner", apn && "APN", parcel?.assessedValue && "assessedValue", parcel?.yearBuilt && "yearBuilt", parcel?.sqft && "sqft",
+    owner && "owner", apn && "APN", assessed && "assessedValue", yearBuilt && "yearBuilt", sqft && "sqft",
+    a?.beds && "beds", a?.baths && "baths", avm && "AVM(as-is)", a?.lastSalePrice && "lastSale",
   ].filter(Boolean) as string[];
-  const needs = [!extra.arv && "ARV (real comps)", !extra.estRepairs && "repairs (scope)", !parcel && regridConnected() === false && "parcel data (add Regrid token)"].filter(Boolean) as string[];
+  const needs = [
+    !extra.arv && "ARV (real comps)", !extra.estRepairs && "repairs (scope)",
+    !parcel && !regridConnected() && "parcel data (add Regrid token)",
+    !a && !attomConnected() && "building/AVM/comps (add ATTOM key)",
+  ].filter(Boolean) as string[];
 
   return {
     deal,

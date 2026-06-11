@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import PropertyIntel from "@/components/PropertyIntel";
 
 interface Analysis { mao: number; equitySpread: number; projectedFee: number; buyerAllIn: number; buyerMarginToArv: number; passes70: boolean; grade: string; maoRulePct: number }
 interface Deal {
@@ -239,6 +240,8 @@ Matched buyers in network: ${matches.length}.`;
         {quickMsg && <div className="text-[11px] text-[var(--muted)] mt-2 leading-relaxed">{quickMsg}</div>}
         <div className="text-[9px] text-[var(--muted)] mt-1 uppercase tracking-wide">Census-verified location + parcel data (Regrid) auto-filled. ARV/repairs need real comps — never invented.</div>
       </div>
+
+      <PropertyIntel />
 
       <div className="hud-panel p-3 mb-5 text-[10px] text-[var(--muted)] leading-relaxed">
         Contacts are your own CRM data. No skip-tracing or scraped personal info; no automated cold-call/text blasting
