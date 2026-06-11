@@ -6,3 +6,4 @@ data
 .env.local
 .env*.local
 *.log
+frontdesk-agents
