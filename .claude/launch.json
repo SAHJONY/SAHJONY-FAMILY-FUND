@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "frontdesk",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontdesk-agents", "run", "dev", "--", "--port", "3456"],
+      "port": 3456
     }
   ]
 }
