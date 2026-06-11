@@ -19,10 +19,19 @@ export default function BusinessPage() {
   const load = async () => setList((await (await fetch("/api/business", { cache: "no-store" })).json()).businesses ?? []);
   useEffect(() => { load(); }, []);
 
-  const add = async () => {
+  const save = async () => {
     if (!b.name) return;
+    // b.id present → backend updates that record; absent → creates a new one.
     await fetch("/api/business", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
     setB({ entityType: "LLC", status: "active", role: "Owner" }); setAdding(false); load();
+  };
+  const editBiz = (biz: Business) => {
+    setB({
+      id: biz.id, name: biz.name, category: biz.category, entityType: biz.entityType,
+      status: biz.status, role: biz.role, website: biz.website, description: biz.description,
+    });
+    setAdding(true);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const del = async (id: string) => { await fetch(`/api/business?id=${id}`, { method: "DELETE" }); load(); };
 
@@ -31,7 +40,7 @@ export default function BusinessPage() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl tracking-[0.2em] text-[var(--hud)]" style={{ textShadow: "0 0 14px rgba(63,224,255,0.5)" }}>OPERATIONS HUB</h1>
         <div className="flex gap-2">
-          <button onClick={() => setAdding(!adding)} className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--gold)] text-[var(--gold)]">+ Business</button>
+          <button onClick={() => { setB({ entityType: "LLC", status: "active", role: "Owner" }); setAdding(!adding); }} className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--gold)] text-[var(--gold)]">+ Business</button>
           <Link href="/" className="text-[11px] tracking-widest uppercase px-3 py-1.5 border border-[var(--hud)] text-[var(--hud)]">← Control Plane</Link>
         </div>
       </div>
@@ -39,7 +48,7 @@ export default function BusinessPage() {
 
       {adding && (
         <div className="hud-panel p-4 mb-5">
-          <div className="label mb-3 text-[var(--gold)]">▸ Register a business / operation</div>
+          <div className="label mb-3 text-[var(--gold)]">▸ {b.id ? "Edit business / operation" : "Register a business / operation"}</div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             <input className={F} placeholder="Business name" value={b.name || ""} onChange={(e) => setB({ ...b, name: e.target.value })} />
             <input className={F} placeholder="Category (e.g. Consulting, E-commerce)" value={b.category || ""} onChange={(e) => setB({ ...b, category: e.target.value })} />
@@ -53,7 +62,10 @@ export default function BusinessPage() {
             <input className={F} placeholder="Website" value={b.website || ""} onChange={(e) => setB({ ...b, website: e.target.value })} />
             <input className={`${F} col-span-2`} placeholder="What it does" value={b.description || ""} onChange={(e) => setB({ ...b, description: e.target.value })} />
           </div>
-          <div className="flex justify-end"><button onClick={add} className="px-4 py-1.5 text-[11px] tracking-widest uppercase border border-[var(--hud)] text-[var(--hud)]">Save</button></div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => { setB({ entityType: "LLC", status: "active", role: "Owner" }); setAdding(false); }} className="px-4 py-1.5 text-[11px] tracking-widest uppercase border border-[var(--muted)] text-[var(--muted)]">Cancel</button>
+            <button onClick={save} className="px-4 py-1.5 text-[11px] tracking-widest uppercase border border-[var(--hud)] text-[var(--hud)]">{b.id ? "Update" : "Save"}</button>
+          </div>
         </div>
       )}
 
@@ -74,7 +86,8 @@ export default function BusinessPage() {
                 {biz.modules.map((m) => <span key={m} className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 border border-[rgba(63,224,255,0.2)] text-[var(--muted)]">{m}</span>)}
               </div>
             )}
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-end gap-1.5 mt-2">
+              <button onClick={() => editBiz(biz)} className="text-[9px] uppercase tracking-widest px-2 py-0.5 border border-[var(--hud)] text-[var(--hud)]">edit</button>
               <button onClick={() => del(biz.id)} className="text-[9px] uppercase tracking-widest px-2 py-0.5 border border-[var(--bad)] text-[var(--bad)]">remove</button>
             </div>
           </section>

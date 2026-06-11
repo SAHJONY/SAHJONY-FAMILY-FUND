@@ -147,8 +147,7 @@ export default function Dashboard() {
               SAHJONY
             </h1>
             <p className="text-[10px] text-[var(--muted)] tracking-[0.25em] uppercase mt-1">
-              Executive Control Plane · {tel?.hostname ?? "…"} · {tel?.platform}/{tel?.arch}
-              {health ? ` · env:${health.vercelEnv}` : ""}
+              SAHJONY Holdings · Executive Operations &amp; Intelligence Plane
             </p>
           </div>
         </div>
