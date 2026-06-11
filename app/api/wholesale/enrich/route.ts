@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { geocode, sourceLinks, recordsLinks } from "@/lib/enrich";
 import { regridByPoint, regridByAddress, regridConnected } from "@/lib/regrid";
+import { upsertDeal, analyzeDeal } from "@/lib/wholesale";
 import { complete } from "@/lib/infer";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +71,41 @@ Assess the spread, a realistic assignment fee, and the single best next step.` }
     analysis = r?.content ?? null;
   }
 
+  // AUTONOMOUS CREATE: build the deal from every real field we could source and
+  // save it as a lead — the owner types only the address. ARV/repairs stay 0
+  // (needs_source) until real comps are added; nothing is invented.
+  let createdDeal = null;
+  if (body.autoCreate) {
+    const norm = geo.normalizedAddress || address;
+    const parts = norm.split(",").map((s) => s.trim());
+    const rg = regrid as any;
+    const deal = await upsertDeal({
+      address: parts[0] || address,
+      city: parts[1] || String(body.city ?? ""),
+      state: geo.state || String(body.state ?? "").toUpperCase(),
+      propertyType: "SFR",
+      sqft: Number(rg?.sqft) || 0,
+      arv,
+      estRepairs: repairs,
+      contractPrice: contract,
+      desiredFee: fee,
+      source: "off_market",
+      status: "lead",
+      notes: [
+        geo.matched ? `Census-verified (${geo.county ?? ""}, tract ${geo.tract ?? "?"})` : "Address unverified",
+        rg?.owner ? `Owner: ${rg.owner}` : "",
+        rg?.apn || apn ? `APN: ${rg?.apn || apn}` : "",
+        rg?.assessedValue ? `Assessed: $${Number(rg.assessedValue).toLocaleString()}` : "",
+        rg?.yearBuilt ? `Built: ${rg.yearBuilt}` : "",
+      ].filter(Boolean).join(" · "),
+      motivation: "Auto-sourced by Hermes from address",
+    });
+    createdDeal = { ...deal, analysis: analyzeDeal(deal) };
+  }
+
+  const autoFilled = Object.entries(fields).filter(([, v]) => v.value && v.provenance !== "needs_source").map(([k]) => k);
+  const needs = Object.entries(fields).filter(([, v]) => !v.value || v.provenance === "needs_source").map(([k]) => k);
+
   return NextResponse.json({
     matched: geo.matched,
     geoDetail: geo.detail,
@@ -78,6 +114,9 @@ Assess the spread, a realistic assignment fee, and the single best next step.` }
     sources: links,
     records,
     analysis,
+    createdDeal,
+    autoFilled,
+    needs,
     note: haveNumbers
       ? "Address verified live. Confirm ARV/repairs against your licensed sources before assigning."
       : "Address verified live. Open the sources to pull ARV/comps (licensed), then re-run for analysis. No values are invented.",

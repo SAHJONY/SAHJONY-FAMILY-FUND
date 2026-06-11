@@ -75,6 +75,26 @@ export default function DealsPage() {
   const delDeal = async (id: string) => { await fetch(`/api/wholesale/deals?id=${id}`, { method: "DELETE" }); if (sel === id) setSel(null); loadDeals(); };
   const setStatus = async (id: string, status: string) => { await fetch("/api/wholesale/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) }); loadDeals(); };
 
+  // ---- ONE-FIELD AUTONOMOUS ADD: type only the address, Hermes sources it ----
+  const [quickAddr, setQuickAddr] = useState("");
+  const [quickBusy, setQuickBusy] = useState(false);
+  const [quickMsg, setQuickMsg] = useState<string | null>(null);
+  const autonomousAdd = async () => {
+    if (!quickAddr.trim() || quickBusy) return;
+    setQuickBusy(true); setQuickMsg("Hermes is sourcing the deal…");
+    try {
+      const r = await fetch("/api/wholesale/enrich", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: quickAddr, autoCreate: true }) });
+      const j = await r.json();
+      if (j.createdDeal) {
+        setQuickMsg(`✓ Created ${j.createdDeal.address}, ${j.createdDeal.city} ${j.createdDeal.state} · auto-filled: ${(j.autoFilled || []).join(", ") || "—"}. Still needs: ${(j.needs || []).join(", ") || "nothing"}.`);
+        setQuickAddr(""); loadDeals();
+      } else {
+        setQuickMsg(j.error || j.geoDetail || "Could not source that address.");
+      }
+    } catch (e) { setQuickMsg((e as Error).message); }
+    setQuickBusy(false);
+  };
+
   // ---- autonomous enrichment: you give the address, SAHJONY finds the data ----
   const [enrich, setEnrich] = useState<any>(null);
   const [enrichBusy, setEnrichBusy] = useState(false);
@@ -203,6 +223,22 @@ Matched buyers in network: ${matches.length}.`;
           ))}
         </div>
       )}
+
+      {/* ONE-FIELD AUTONOMOUS ADD */}
+      <div className="hud-panel hud-glow p-4 mb-4">
+        <div className="label mb-2 text-[var(--gold)]">⚡ Autonomous add — type only the address</div>
+        <div className="flex gap-2">
+          <input value={quickAddr} onChange={(e) => setQuickAddr(e.target.value)} onKeyDown={(e) => e.key === "Enter" && autonomousAdd()}
+            placeholder="e.g. 1100 Congress Ave, Austin, TX — Hermes sources the rest"
+            className="flex-1 bg-transparent border border-[rgba(255,194,75,0.4)] px-3 py-2.5 text-[13px] text-[var(--text)] placeholder:text-[var(--muted)]" />
+          <button onClick={autonomousAdd} disabled={quickBusy || !quickAddr.trim()}
+            className="px-5 text-[11px] tracking-widest uppercase border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.1)] disabled:opacity-40">
+            {quickBusy ? "Sourcing…" : "⚡ Source it"}
+          </button>
+        </div>
+        {quickMsg && <div className="text-[11px] text-[var(--muted)] mt-2 leading-relaxed">{quickMsg}</div>}
+        <div className="text-[9px] text-[var(--muted)] mt-1 uppercase tracking-wide">Census-verified location + parcel data (Regrid) auto-filled. ARV/repairs need real comps — never invented.</div>
+      </div>
 
       <div className="hud-panel p-3 mb-5 text-[10px] text-[var(--muted)] leading-relaxed">
         Contacts are your own CRM data. No skip-tracing or scraped personal info; no automated cold-call/text blasting

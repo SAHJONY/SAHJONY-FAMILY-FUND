@@ -6,11 +6,11 @@
 // confirmation proposal instead.
 
 import { complete, extractJson } from "./infer";
-import { upsertDeal, listDeals, listBuyers, upsertBuyer, matchBuyers, analyzeDeal } from "./wholesale";
+import { listDeals, listBuyers, upsertBuyer, matchBuyers, analyzeDeal } from "./wholesale";
 import { addMemory } from "./memory-store";
 import { runFinder } from "./finder";
 import { WORKERS, newTask, saveTask } from "./workforce";
-import { geocode } from "./enrich";
+import { sourceDealFromAddress } from "./source-deal";
 
 export interface HermesResult {
   action: string;
@@ -53,13 +53,16 @@ export async function hermes(command: string): Promise<HermesResult> {
   try {
     switch (plan.action) {
       case "create_lead": {
-        const geo = p.address ? await geocode(String(p.address)) : null;
-        const deal = await upsertDeal({
-          address: String(p.address ?? ""), city: p.city ?? (geo?.matched ? "" : ""), state: (p.state ?? geo?.state ?? "").toUpperCase?.() ?? "",
-          arv: Number(p.arv) || 0, estRepairs: Number(p.repairs) || 0, contractPrice: Number(p.contractPrice) || 0,
-          desiredFee: Number(p.fee) || 10000, status: "lead", source: "off_market",
+        if (!p.address) return { action: plan.action, ok: false, speak: "Give me an address and I'll source it, sir." };
+        // Reconstruct a full address (model may split out city/state) so the
+        // Census geocoder can match it.
+        const fullAddr = [p.address, p.city, p.state].filter(Boolean).join(", ");
+        // Autonomous: just the address — Hermes pulls every real field it can.
+        const sourced = await sourceDealFromAddress(fullAddr, {
+          arv: Number(p.arv) || 0, estRepairs: Number(p.repairs) || 0,
+          contractPrice: Number(p.contractPrice) || 0, fee: Number(p.fee) || 0,
         });
-        return { action: plan.action, ok: true, speak, data: { deal, geocoded: geo?.matched ?? false } };
+        return { action: plan.action, ok: true, speak: sourced.summary, data: sourced };
       }
       case "find_deals": {
         const run = await runFinder();
