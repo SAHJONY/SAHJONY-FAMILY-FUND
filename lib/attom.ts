@@ -7,14 +7,16 @@
 // Zestimate) — a real licensed data product, NOT a fabricated number. It is the
 // AS-IS value; after-repair value (ARV) still needs comp judgment.
 
+import { getSecret } from "./secrets";
+
 const BASE = "https://api.gateway.attomdata.com/propertyapi/v1.0.0";
 
 export function attomConnected() {
-  return !!process.env.ATTOM_API_KEY;
+  return !!getSecret("ATTOM_API_KEY");
 }
 
 async function attomGet(path: string): Promise<any | null> {
-  const key = process.env.ATTOM_API_KEY;
+  const key = getSecret("ATTOM_API_KEY");
   if (!key) return null;
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 12000);

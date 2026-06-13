@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSecret } from "@/lib/secrets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,28 +11,28 @@ export async function GET() {
   return NextResponse.json(
     {
       bland: {
-        connected: !!process.env.BLAND_API_KEY,
-        detail: process.env.BLAND_API_KEY ? "Bland.ai key present." : "Set BLAND_API_KEY to connect.",
+        connected: !!getSecret("BLAND_API_KEY"),
+        detail: getSecret("BLAND_API_KEY") ? "Bland.ai key present." : "Set BLAND_API_KEY to connect.",
       },
       googleVoice: {
-        number: process.env.GOOGLE_VOICE_NUMBER || null,
-        detail: process.env.GOOGLE_VOICE_NUMBER
+        number: getSecret("GOOGLE_VOICE_NUMBER") || null,
+        detail: getSecret("GOOGLE_VOICE_NUMBER")
           ? "Click-to-call enabled. (Google Voice has no public API — manual/dialer only.)"
           : "Set GOOGLE_VOICE_NUMBER to enable click-to-call.",
       },
       propstream: {
-        url: process.env.PROPSTREAM_URL || "https://login.propstream.com",
+        url: getSecret("PROPSTREAM_URL") || "https://login.propstream.com",
         detail: "Launch link. PropStream has no public API; export CSV and import here.",
       },
       regrid: {
-        connected: !!process.env.REGRID_API_TOKEN,
-        detail: process.env.REGRID_API_TOKEN
+        connected: !!getSecret("REGRID_API_TOKEN"),
+        detail: getSecret("REGRID_API_TOKEN")
           ? "Regrid connected — real parcel data auto-fills on Auto-find."
           : "Set REGRID_API_TOKEN for real nationwide parcel data (owner/APN/assessed value).",
       },
       attom: {
-        connected: !!process.env.ATTOM_API_KEY,
-        detail: process.env.ATTOM_API_KEY
+        connected: !!getSecret("ATTOM_API_KEY"),
+        detail: getSecret("ATTOM_API_KEY")
           ? "ATTOM connected — building detail, AVM valuation, tax & comps auto-fill (the PropStream data engine)."
           : "Set ATTOM_API_KEY for PropStream-style data: property detail, AVM valuation, tax/assessment, comps.",
       },

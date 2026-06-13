@@ -13,6 +13,7 @@ import { dataPath } from "./paths";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { listDeals, upsertDeal, listBuyers, matchBuyers, analyzeDeal } from "./wholesale";
+import { getSecret } from "./secrets";
 
 export interface FinderConfig {
   enabled: boolean;
@@ -63,7 +64,7 @@ async function pushLog(run: FinderRun) {
 
 // Query the owner's licensed MLS RESO feed for active listings in a market.
 async function queryReso(city: string, state: string, cfg: FinderConfig): Promise<any[]> {
-  const base = process.env.MLS_RESO_URL, token = process.env.MLS_RESO_TOKEN;
+  const base = getSecret("MLS_RESO_URL"), token = getSecret("MLS_RESO_TOKEN");
   if (!base || !token) return [];
   const f: string[] = ["StandardStatus eq 'Active'"];
   if (city) f.push(`City eq '${city.replace(/'/g, "''")}'`);
@@ -86,7 +87,7 @@ export async function runFinder(): Promise<FinderRun> {
   const cfg = await getConfig();
   await setConfig({ lastRunAt: Date.now(), runs: cfg.runs + 1 });
 
-  const hasFeed = !!(process.env.MLS_RESO_URL && process.env.MLS_RESO_TOKEN);
+  const hasFeed = !!(getSecret("MLS_RESO_URL") && getSecret("MLS_RESO_TOKEN"));
   if (!hasFeed) {
     const run: FinderRun = { t: Date.now(), source: "none", scanned: 0, added: 0, topMatch: null,
       note: "No licensed MLS feed connected — SAHJONY won't fabricate deals. Add MLS_RESO_URL + MLS_RESO_TOKEN to source real listings 24/7." };

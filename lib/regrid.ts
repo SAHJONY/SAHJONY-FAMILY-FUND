@@ -5,6 +5,8 @@
 // configured; if there is no token it honestly reports "not connected" rather
 // than inventing anything. Nothing here is simulated.
 
+import { getSecret } from "./secrets";
+
 export interface RegridParcel {
   apn: string | null;
   owner: string | null;
@@ -21,7 +23,7 @@ export interface RegridParcel {
 }
 
 export function regridConnected() {
-  return !!process.env.REGRID_API_TOKEN;
+  return !!getSecret("REGRID_API_TOKEN");
 }
 
 function pick(f: Record<string, any>, ...keys: string[]) {
@@ -48,7 +50,7 @@ function mapFields(f: Record<string, any>): RegridParcel {
 
 // Query a parcel by point. Real Regrid v2 endpoint.
 export async function regridByPoint(lat: number, lon: number): Promise<{ ok: boolean; parcel?: RegridParcel; detail: string }> {
-  const token = process.env.REGRID_API_TOKEN;
+  const token = getSecret("REGRID_API_TOKEN");
   if (!token) return { ok: false, detail: "Regrid not connected. Set REGRID_API_TOKEN on the env page." };
   const url = `https://app.regrid.com/api/v2/parcels/point?lat=${lat}&lon=${lon}&token=${token}&return_geometry=false&limit=1`;
   const c = new AbortController();
@@ -69,7 +71,7 @@ export async function regridByPoint(lat: number, lon: number): Promise<{ ok: boo
 }
 
 export async function regridByAddress(address: string): Promise<{ ok: boolean; parcel?: RegridParcel; detail: string }> {
-  const token = process.env.REGRID_API_TOKEN;
+  const token = getSecret("REGRID_API_TOKEN");
   if (!token) return { ok: false, detail: "Regrid not connected. Set REGRID_API_TOKEN on the env page." };
   const url = `https://app.regrid.com/api/v2/parcels/address?query=${encodeURIComponent(address)}&token=${token}&return_geometry=false&limit=1`;
   const c = new AbortController();

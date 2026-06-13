@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-interface Worker { id: string; name: string; role: string }
+interface Worker { id: string; name: string; role: string; custom?: boolean }
 interface WTask { id: string; workerId: string; task: string; status: string; result: string }
 
 const F = "bg-transparent border border-[rgba(63,224,255,0.25)] px-2 py-1.5 text-[12px] text-[var(--text)] placeholder:text-[var(--muted)]";
@@ -36,6 +36,17 @@ export default function WorkforcePage() {
   };
   const delTask = async (id: string) => { await fetch(`/api/workforce?id=${id}`, { method: "DELETE" }); load(); };
 
+  // Create / delete custom agents.
+  const [na, setNa] = useState<Record<string, string>>({});
+  const [creating, setCreating] = useState(false);
+  const createAgent = async () => {
+    if (!na.name?.trim() || creating) return;
+    setCreating(true);
+    await fetch("/api/workforce", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_agent", name: na.name, role: na.role, system: na.system }) });
+    setNa({}); setCreating(false); load();
+  };
+  const delAgent = async (id: string) => { await fetch(`/api/workforce?agent=${id}`, { method: "DELETE" }); load(); };
+
   const build = async () => {
     if (!spec.trim()) return;
     setDevBusy(true); setDevOut(null);
@@ -59,12 +70,25 @@ export default function WorkforcePage() {
           <div className="grid grid-cols-2 gap-1.5 mb-2">
             {workers.map((w) => (
               <button key={w.id} onClick={() => setSel(w.id)}
-                className={`text-left px-2 py-1.5 border text-[11px] ${sel === w.id ? "border-[var(--hud)] hud-glow" : "border-[rgba(63,224,255,0.15)]"}`}>
-                <div className="text-[var(--text)]">{w.name}</div>
+                className={`relative text-left px-2 py-1.5 border text-[11px] ${sel === w.id ? "border-[var(--hud)] hud-glow" : "border-[rgba(63,224,255,0.15)]"}`}>
+                <div className="text-[var(--text)]">{w.name}{w.custom && <span className="text-[8px] text-[var(--gold)] ml-1 uppercase">★</span>}</div>
                 <div className="text-[9px] text-[var(--muted)] uppercase tracking-wide">{w.role}</div>
+                {w.custom && <span onClick={(e) => { e.stopPropagation(); delAgent(w.id); }} className="absolute top-1 right-1 text-[var(--muted)] hover:text-[var(--bad)] text-[10px]">×</span>}
               </button>
             ))}
           </div>
+
+          {/* Create your own agent */}
+          <div className="border border-[rgba(255,194,75,0.3)] p-2 mb-3">
+            <div className="label text-[var(--gold)] mb-1.5">＋ Create an agent</div>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <input className={F} placeholder="Name (e.g. Cleo)" value={na.name || ""} onChange={(e) => setNa({ ...na, name: e.target.value })} />
+              <input className={F} placeholder="Role (e.g. SEO Specialist)" value={na.role || ""} onChange={(e) => setNa({ ...na, role: e.target.value })} />
+            </div>
+            <textarea className={`${F} w-full h-14 mb-1.5`} placeholder="Instructions / system prompt — what this agent does and how it behaves" value={na.system || ""} onChange={(e) => setNa({ ...na, system: e.target.value })} />
+            <div className="flex justify-end"><button onClick={createAgent} disabled={creating || !na.name?.trim()} className="px-3 py-1 text-[10px] tracking-widest uppercase border border-[var(--gold)] text-[var(--gold)] disabled:opacity-40">{creating ? "Creating…" : "Create agent"}</button></div>
+          </div>
+
           <textarea value={task} onChange={(e) => setTask(e.target.value)} placeholder={`Assign a task to ${wname(sel)}…`}
             className={`${F} w-full h-16 mb-2`} />
           <div className="flex justify-end mb-3"><button onClick={assign} disabled={busy} className="px-4 py-1.5 text-[11px] tracking-widest uppercase border border-[var(--hud)] text-[var(--hud)] disabled:opacity-40">{busy ? "Working…" : "Assign task"}</button></div>

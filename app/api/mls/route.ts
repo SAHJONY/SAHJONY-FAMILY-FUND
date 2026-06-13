@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSecret } from "@/lib/secrets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ function publicLinks(city: string, state: string, minP: number, maxP: number) {
 }
 
 export async function GET() {
-  return NextResponse.json({ connected: !!(process.env.MLS_RESO_URL && process.env.MLS_RESO_TOKEN) });
+  return NextResponse.json({ connected: !!(getSecret("MLS_RESO_URL") && getSecret("MLS_RESO_TOKEN")) });
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const maxP = Number(b.maxPrice) || 0;
   const minBeds = Number(b.minBeds) || 0;
 
-  const base = process.env.MLS_RESO_URL, token = process.env.MLS_RESO_TOKEN;
+  const base = getSecret("MLS_RESO_URL"), token = getSecret("MLS_RESO_TOKEN");
   if (!base || !token) {
     return NextResponse.json({
       connected: false,

@@ -70,6 +70,7 @@ export function listingLinks(city: string, state: string) {
   const q = encodeURIComponent(`${city} ${state}`.trim());
   const cs = encodeURIComponent(`${city}_${state}`);
   return [
+    { label: "Propwire", url: `https://propwire.com/search` },
     { label: "Zillow", url: `https://www.zillow.com/homes/${q}_rb/` },
     { label: "Zillow FSBO", url: `https://www.zillow.com/homes/fsbo/${q}_rb/` },
     { label: "Redfin", url: `https://www.redfin.com/city/search?location=${q}` },

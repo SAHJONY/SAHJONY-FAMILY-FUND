@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PropertyIntel from "@/components/PropertyIntel";
+import CashBuyerFinder from "@/components/CashBuyerFinder";
 
 interface Analysis { mao: number; equitySpread: number; projectedFee: number; buyerAllIn: number; buyerMarginToArv: number; passes70: boolean; grade: string; maoRulePct: number }
 interface Deal {
@@ -377,6 +378,7 @@ Matched buyers in network: ${matches.length}.`;
         {/* BUYERS */}
         <section className="hud-panel p-4">
           <h2 className="label mb-3 text-[var(--gold)]">▸ Cash buyer network</h2>
+          <CashBuyerFinder onImported={loadBuyers} />
           <div className="grid grid-cols-2 gap-2 mb-2">
             <input className={F} placeholder="Buyer / firm name" value={b.name || ""} onChange={setBF("name")} />
             <select className={F} value={b.type} onChange={setBF("type")}>

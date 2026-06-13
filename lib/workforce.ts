@@ -50,6 +50,35 @@ export const WORKERS: Worker[] = [
     system: "You are Leo, Copywriter. You write persuasive, honest copy: landing pages, buyer blasts (opt-in), seller mailers, scripts, and email sequences. Clear, benefit-led, no false claims." },
 ];
 
+// --- Custom agents: the owner can create their own workers ------------------
+const CUSTOM_FILE = dataPath("custom-agents.json");
+async function readCustom(): Promise<Worker[]> {
+  try { const r = await fs.readFile(CUSTOM_FILE, "utf8"); const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch { return []; }
+}
+async function writeCustom(items: Worker[]) {
+  await fs.mkdir(path.dirname(CUSTOM_FILE), { recursive: true });
+  await fs.writeFile(CUSTOM_FILE, JSON.stringify(items, null, 2), "utf8");
+}
+// All workers = built-in roster + owner-created agents.
+export async function listAllWorkers(): Promise<(Worker & { custom?: boolean })[]> {
+  const custom = (await readCustom()).map((w) => ({ ...w, custom: true }));
+  return [...WORKERS, ...custom];
+}
+export async function findWorker(id: string): Promise<Worker | undefined> {
+  return (await listAllWorkers()).find((w) => w.id === id);
+}
+export async function createWorker(name: string, role: string, system: string): Promise<Worker> {
+  const items = await readCustom();
+  const id = `custom-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24)}-${Date.now().toString(36).slice(-4)}`;
+  const w: Worker = { id, name: name.trim(), role: role.trim() || "Specialist", system: system.trim() || `You are ${name}, a specialist on SAHJONY's team. Be precise and helpful.` };
+  items.push(w); await writeCustom(items); return w;
+}
+export async function removeWorker(id: string): Promise<boolean> {
+  const items = await readCustom();
+  const next = items.filter((w) => w.id !== id);
+  await writeCustom(next); return next.length !== items.length;
+}
+
 export interface WorkforceTask {
   id: string;
   workerId: string;
