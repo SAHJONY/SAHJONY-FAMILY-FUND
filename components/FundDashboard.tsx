@@ -262,8 +262,11 @@ export default function FundDashboard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="hud-text text-xl text-[var(--gold)] tracking-wider">SAHJONY FAMILY FUND</h1>
-          <p className="text-[11px] text-[var(--muted)]">Deterministic multi-asset monitor · reports conditions, tracks your own targets · never recommends a trade</p>
+          <h1 className="hud-text text-xl text-[var(--gold)] tracking-wider">SAHJONY CAPITAL LLC</h1>
+          <p className="text-[11px] text-[var(--muted)]">
+            <a href="https://www.sahjonycapital.com" target="_blank" rel="noreferrer" className="text-[var(--hud)] hover:underline">www.sahjonycapital.com</a>
+            <span className="mx-1.5">·</span>Deterministic multi-asset monitor · reports conditions, tracks your own targets · never recommends a trade
+          </p>
         </div>
         <button onClick={run} disabled={running}
           className="text-[11px] tracking-[0.2em] uppercase px-5 py-2.5 font-bold border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-50">

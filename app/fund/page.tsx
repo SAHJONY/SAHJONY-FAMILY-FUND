@@ -2,7 +2,10 @@ import Link from "next/link";
 import FundDashboard from "@/components/FundDashboard";
 import StrategyLab from "@/components/StrategyLab";
 
-export const metadata = { title: "SAHJONY Family Fund" };
+export const metadata = {
+  title: "SAHJONY CAPITAL LLC",
+  description: "SAHJONY CAPITAL LLC — deterministic multi-asset monitor & quant trading lab · www.sahjonycapital.com",
+};
 
 export default function FundPage() {
   return (

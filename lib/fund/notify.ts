@@ -6,12 +6,12 @@
 import type { Alert } from "./types";
 
 function format(alerts: Alert[], asof: string): string {
-  if (!alerts.length) return `SAHJONY FAMILY FUND · ${asof}\nNo active alerts.`;
+  if (!alerts.length) return `SAHJONY CAPITAL LLC · ${asof}\nNo active alerts.`;
   const lines = alerts.slice(0, 20).map((a) => {
     const tag = a.severity === "high" ? "‼️" : a.severity === "warn" ? "⚠️" : "ℹ️";
     return `${tag} ${a.message}`;
   });
-  return `SAHJONY FAMILY FUND · ${asof}\n${lines.join("\n")}`;
+  return `SAHJONY CAPITAL LLC · ${asof}\n${lines.join("\n")}`;
 }
 
 async function telegram(text: string): Promise<boolean> {
