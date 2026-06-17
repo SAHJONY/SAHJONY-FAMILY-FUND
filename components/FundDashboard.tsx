@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Panel, Gauge } from "@/components/ui";
+import { useI18n } from "@/components/i18n";
 import type {
   FundReport, ValuedPosition, Alert, AllocationSlice, NewsAnalysis,
 } from "@/lib/fund/types";
@@ -16,18 +17,19 @@ const SEV: Record<Alert["severity"], string> = {
 };
 
 function StatusStrip({ r }: { r: FundReport }) {
+  const { t } = useI18n();
   const a = r.analytics;
   const totalPnl = r.positions.reduce((s, p) => s + p.pnl, 0);
   const cells: { label: string; value: string; color?: string }[] = [
-    { label: "NAV", value: money(a.nav) },
-    { label: "Unrealized P&L", value: `${sign(totalPnl)}${money(totalPnl)}`, color: pnlColor(totalPnl) },
-    { label: "Positions", value: String(r.positions.length) },
-    { label: "Alerts", value: String(r.alerts.length), color: r.alerts.some((x) => x.severity === "high") ? "var(--bad)" : undefined },
-    { label: "Macro", value: r.macro.available ? `${r.macro.score}/100` : "N/A", color: r.macro.score >= 60 ? "var(--good)" : r.macro.score >= 40 ? "var(--gold)" : "var(--bad)" },
-    { label: "Net Δ", value: a.netDelta.toLocaleString() },
-    { label: "Theta/day", value: money(a.dailyTheta), color: pnlColor(a.dailyTheta) },
-    { label: "Net Vega", value: money(a.netVega) },
-    { label: "As of", value: r.asof },
+    { label: t("nav"), value: money(a.nav) },
+    { label: t("unrealizedPnl"), value: `${sign(totalPnl)}${money(totalPnl)}`, color: pnlColor(totalPnl) },
+    { label: t("positions"), value: String(r.positions.length) },
+    { label: t("alerts"), value: String(r.alerts.length), color: r.alerts.some((x) => x.severity === "high") ? "var(--bad)" : undefined },
+    { label: t("macro"), value: r.macro.available ? `${r.macro.score}/100` : "N/A", color: r.macro.score >= 60 ? "var(--good)" : r.macro.score >= 40 ? "var(--gold)" : "var(--bad)" },
+    { label: t("netDelta"), value: a.netDelta.toLocaleString() },
+    { label: t("thetaDay"), value: money(a.dailyTheta), color: pnlColor(a.dailyTheta) },
+    { label: t("netVega"), value: money(a.netVega) },
+    { label: t("asOf"), value: r.asof },
   ];
   return (
     <div className="grid grid-cols-3 md:grid-cols-9 gap-px bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.25)]">
@@ -42,10 +44,11 @@ function StatusStrip({ r }: { r: FundReport }) {
 }
 
 function AlertsPanel({ alerts }: { alerts: Alert[] }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Active Alerts" badge={<span className="label">{alerts.length}</span>}>
+    <Panel title={t("activeAlerts")} badge={<span className="label">{alerts.length}</span>}>
       {alerts.length === 0 ? (
-        <div className="text-[var(--muted)] text-xs">No active conditions. Every alert is a fact, never a buy/sell call.</div>
+        <div className="text-[var(--muted)] text-xs">{t("noAlerts")}</div>
       ) : (
         <div className="space-y-1.5 max-h-72 overflow-auto">
           {alerts.map((a, i) => {
@@ -83,8 +86,9 @@ function ProgressBar({ pct, accent }: { pct: number | null; accent: string }) {
 }
 
 function PositionsGrid({ rows }: { rows: ValuedPosition[] }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Positions" scan>
+    <Panel title={t("positionsPanel")} scan>
       <div className="overflow-auto max-h-[28rem]">
         <table className="w-full text-[11px] hud-text border-collapse">
           <thead>
@@ -167,8 +171,9 @@ function AllocBars({ title, slices }: { title: string; slices: AllocationSlice[]
 }
 
 function MacroPanel({ r }: { r: FundReport }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Macro Gate" badge={<span className="text-[9px] text-[var(--muted)] tracking-widest">DETERMINISTIC</span>}>
+    <Panel title={t("macroGate")} badge={<span className="text-[9px] text-[var(--muted)] tracking-widest">{t("deterministic")}</span>}>
       <div className="flex gap-4 items-center">
         <Gauge value={r.macro.score} label="ENVIRONMENT" unit="/100"
           accent={r.macro.score >= 60 ? "var(--good)" : r.macro.score >= 40 ? "var(--gold)" : "var(--bad)"} />
@@ -184,7 +189,7 @@ function MacroPanel({ r }: { r: FundReport }) {
           ))}
         </div>
       </div>
-      <div className="text-[9px] text-[var(--muted)] mt-2">Same data in, same score out. Context, not a trade signal.</div>
+      <div className="text-[9px] text-[var(--muted)] mt-2">{t("macroNote")}</div>
     </Panel>
   );
 }
@@ -194,8 +199,9 @@ const SENT_COLOR: Record<NewsAnalysis["sentiment"], string> = {
 };
 
 function NewsPanel({ news }: { news: NewsAnalysis[] }) {
+  const { t } = useI18n();
   return (
-    <Panel title="Claude News Read" badge={<span className="text-[9px] text-[var(--gold)] tracking-widest">THE ONE PAID PIECE</span>}>
+    <Panel title={t("newsRead")} badge={<span className="text-[9px] text-[var(--gold)] tracking-widest">{t("onePaid")}</span>}>
       {news.length === 0 ? (
         <div className="text-[var(--muted)] text-xs">No news pulled this run.</div>
       ) : (
@@ -232,6 +238,7 @@ function NewsPanel({ news }: { news: NewsAnalysis[] }) {
 }
 
 export default function FundDashboard() {
+  const { t } = useI18n();
   const [report, setReport] = useState<FundReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -248,24 +255,24 @@ export default function FundDashboard() {
   useEffect(() => { load(); }, [load]);
 
   const run = useCallback(async () => {
-    setRunning(true); setMsg("Pulling chains, valuing book, scoring macro, reading news…");
+    setRunning(true); setMsg(t("runMsg"));
     try {
       const r = await fetch("/api/fund/run", { method: "POST", body: JSON.stringify({}) });
       const j = await r.json();
-      if (j.report) { setReport(j.report); setMsg(`Run complete · ${j.report.alerts.length} alerts · ${j.report.errors.length} feed issue(s)`); }
-      else setMsg("Run failed.");
-    } catch { setMsg("Run failed (network)."); }
+      if (j.report) { setReport(j.report); setMsg(`${t("runDone")} · ${j.report.alerts.length} · ${j.report.errors.length} feed issue(s)`); }
+      else setMsg(j.error || "—");
+    } catch { setMsg("network error"); }
     finally { setRunning(false); }
-  }, []);
+  }, [t]);
 
   const share = useCallback(async () => {
     const data = { title: "SAHJONY CAPITAL LLC", text: "SAHJONY CAPITAL LLC — markets monitor & quant lab", url: window.location.href };
     try {
       if (navigator.share) { await navigator.share(data); return; }
       await navigator.clipboard.writeText(data.url);
-      setMsg("Link copied to clipboard.");
+      setMsg(t("linkCopied"));
     } catch { /* user cancelled */ }
-  }, []);
+  }, [t]);
 
   return (
     <div className="space-y-4">
@@ -274,27 +281,27 @@ export default function FundDashboard() {
           <h1 className="hud-text text-xl text-[var(--gold)] tracking-wider">SAHJONY CAPITAL LLC</h1>
           <p className="text-[11px] text-[var(--muted)]">
             <a href="https://www.sahjonycapital.com" target="_blank" rel="noreferrer" className="text-[var(--hud)] hover:underline">www.sahjonycapital.com</a>
-            <span className="mx-1.5">·</span>Deterministic multi-asset monitor · reports conditions, tracks your own targets · never recommends a trade
+            <span className="mx-1.5">·</span>{t("tagline")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={share}
             className="text-[11px] tracking-[0.2em] uppercase px-4 py-2.5 border border-[rgba(63,224,255,0.4)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.08)]">
-            ⤴ Share
+            ⤴ {t("share")}
           </button>
           <button onClick={run} disabled={running}
             className="text-[11px] tracking-[0.2em] uppercase px-5 py-2.5 font-bold border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-50">
-            {running ? "Running…" : "▶ Run Pipeline"}
+            {running ? t("running") : `▶ ${t("runPipeline")}`}
           </button>
         </div>
       </div>
       {msg && <div className="text-[10px] text-[var(--muted)]">{msg}</div>}
 
       {loading ? (
-        <div className="text-[var(--muted)] text-sm">Loading…</div>
+        <div className="text-[var(--muted)] text-sm">{t("loading")}</div>
       ) : !report ? (
-        <Panel title="No report yet">
-          <div className="text-sm text-[var(--muted)]">The pipeline hasn&apos;t run. Click <span className="text-[var(--gold)]">Run Pipeline</span> to pull live data, value the book, score the macro environment, and read the news.</div>
+        <Panel title={t("noReport")}>
+          <div className="text-sm text-[var(--muted)]">{t("noReportBody")}</div>
         </Panel>
       ) : (
         <>
@@ -305,11 +312,11 @@ export default function FundDashboard() {
           </div>
           <PositionsGrid rows={report.positions} />
           <div className="grid lg:grid-cols-2 gap-4">
-            <Panel title="Allocation & Concentration">
+            <Panel title={t("allocation")}>
               <div className="space-y-3">
-                <AllocBars title="By Ticker" slices={report.analytics.byTicker} />
-                <AllocBars title="By Sector" slices={report.analytics.bySector} />
-                <AllocBars title="By Asset Class" slices={report.analytics.byAssetClass} />
+                <AllocBars title={t("byTicker")} slices={report.analytics.byTicker} />
+                <AllocBars title={t("bySector")} slices={report.analytics.bySector} />
+                <AllocBars title={t("byAssetClass")} slices={report.analytics.byAssetClass} />
               </div>
             </Panel>
             <NewsPanel news={report.news} />
@@ -322,7 +329,7 @@ export default function FundDashboard() {
             </Panel>
           )}
           <div className="text-[9px] text-[var(--muted)] text-center pt-2">
-            Generated {new Date(report.generatedAt).toLocaleString()} · This system stays a monitor: it reports conditions and tracks your targets. Nothing here recommends a trade or routes an order.
+            {new Date(report.generatedAt).toLocaleString()} · {t("monitorFooter")}
           </div>
         </>
       )}

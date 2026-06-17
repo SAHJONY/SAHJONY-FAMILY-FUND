@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Panel } from "@/components/ui";
+import { useI18n } from "@/components/i18n";
 import type { BacktestResult } from "@/lib/fund/quant/backtest";
 import type { SymbolSignals } from "@/lib/fund/quant/signals";
 import type { SizingResult } from "@/lib/fund/quant/sizing";
@@ -43,6 +44,7 @@ function MetricRow({ label, s, b, fmt = num, better = "high" }: { label: string;
 }
 
 export default function StrategyLab() {
+  const { t } = useI18n();
   const [strategies, setStrategies] = useState<StrategyMeta[]>([]);
   const [live, setLive] = useState<{ enabled: boolean; reason: string } | null>(null);
   const [paper, setPaper] = useState<PaperValuation | null>(null);
@@ -102,32 +104,30 @@ export default function StrategyLab() {
   return (
     <div className="space-y-4">
       <div className="border border-[rgba(255,194,75,0.4)] bg-[rgba(255,194,75,0.05)] px-3 py-2">
-        <div className="text-[var(--gold)] text-xs font-bold tracking-wider">STRATEGY LAB · QUANT ENGINE</div>
-        <div className="text-[10px] text-[var(--muted)] mt-0.5">
-          Backtested on real history with no look-ahead. Metrics are <span className="text-[var(--text)]">measured, not promised</span> — past performance does not predict future results, and this is software for your own decisions, not financial advice. Execution is <span className="text-[var(--text)]">paper-only</span>; live routing requires your own broker and per-order confirmation.
-        </div>
+        <div className="text-[var(--gold)] text-xs font-bold tracking-wider">{t("labTitle")}</div>
+        <div className="text-[10px] text-[var(--muted)] mt-0.5">{t("labDisclaimer")}</div>
       </div>
 
       {/* Controls */}
-      <Panel title="Backtest & Signals">
+      <Panel title={t("backtestSignals")}>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">Symbol
+          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">{t("symbol")}
             <input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               className="block mt-1 w-28 bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.3)] px-2 py-1 hud-text text-[var(--text)] text-sm" />
           </label>
-          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">Strategy
+          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">{t("strategy")}
             <select value={strategyId} onChange={(e) => setStrategyId(e.target.value)}
               className="block mt-1 bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.3)] px-2 py-1 hud-text text-[var(--text)] text-sm">
               {strategies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </label>
-          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">Years
+          <label className="text-[10px] text-[var(--muted)] uppercase tracking-wide">{t("years")}
             <input type="number" min={1} max={10} value={years} onChange={(e) => setYears(Number(e.target.value))}
               className="block mt-1 w-16 bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.3)] px-2 py-1 hud-text text-[var(--text)] text-sm" />
           </label>
           <button onClick={run} disabled={busy}
             className="text-[11px] tracking-[0.2em] uppercase px-4 py-2 font-bold border border-[var(--hud)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.08)] disabled:opacity-50">
-            {busy ? "Running…" : "▶ Run"}
+            {busy ? t("running") : `▶ ${t("run")}`}
           </button>
         </div>
         {selected && <div className="text-[10px] text-[var(--muted)] mt-2">{selected.description}</div>}
@@ -191,7 +191,7 @@ export default function StrategyLab() {
       )}
 
       {/* Paper trading */}
-      <Panel title="Paper Trading" badge={live && <span className="text-[9px] tracking-widest" style={{ color: live.enabled ? "var(--good)" : "var(--muted)" }}>{live.enabled ? "LIVE" : "PAPER ONLY"}</span>}>
+      <Panel title={t("paperTrading")} badge={live && <span className="text-[9px] tracking-widest" style={{ color: live.enabled ? "var(--good)" : "var(--muted)" }}>{live.enabled ? "LIVE" : "PAPER ONLY"}</span>}>
         {paper && (
           <div className="grid md:grid-cols-5 gap-px bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.2)] mb-3">
             {[

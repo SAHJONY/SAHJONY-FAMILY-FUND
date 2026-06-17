@@ -6,7 +6,7 @@
 // limits. Every fetch is defensive: on failure we return null / empty and the
 // caller tags the mark "unavailable" rather than fabricating a number.
 
-import { getSecret } from "../secrets";
+import { key } from "./ctx";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
@@ -50,8 +50,8 @@ const ALPACA = "https://data.alpaca.markets";
 
 // Alpaca is the FALLBACK provider — inert unless the owner has added a key.
 function alpacaHeaders(): Record<string, string> | null {
-  const id = getSecret("ALPACA_API_KEY_ID");
-  const sec = getSecret("ALPACA_API_SECRET_KEY");
+  const id = key("ALPACA_API_KEY_ID");
+  const sec = key("ALPACA_API_SECRET_KEY");
   if (!id || !sec) return null;
   return { "APCA-API-KEY-ID": id, "APCA-API-SECRET-KEY": sec, Accept: "application/json" };
 }

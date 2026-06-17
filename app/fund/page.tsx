@@ -1,24 +1,25 @@
-import Link from "next/link";
-import FundDashboard from "@/components/FundDashboard";
-import StrategyLab from "@/components/StrategyLab";
-import FundBrain from "@/components/FundBrain";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { verifySession, getUser, publicUser } from "@/lib/fund/auth";
+import FundApp from "@/components/FundApp";
 
 export const metadata = {
   title: "SAHJONY CAPITAL LLC",
   description: "SAHJONY CAPITAL LLC — deterministic multi-asset monitor & quant trading lab · www.sahjonycapital.com",
 };
 
-export default function FundPage() {
+// Guarded: requires a valid session, else redirect to /login.
+export default async function FundPage() {
+  const token = (await cookies()).get("sahjony_sid")?.value;
+  const userId = verifySession(token);
+  if (!userId) redirect("/login");
+  const u = await getUser(userId);
+  if (!u || u.status === "suspended") redirect("/login");
+  const pu = publicUser(u);
+
   return (
     <main className="min-h-screen p-4 md:p-6 max-w-[1500px] mx-auto">
-      <div className="mb-4">
-        <Link href="/" className="text-[11px] tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--hud)]">‹ Control Plane</Link>
-      </div>
-      <FundDashboard />
-      <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
-      <FundBrain />
-      <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
-      <StrategyLab />
+      <FundApp user={{ id: pu.id, name: pu.name, email: pu.email, plan: pu.plan, isOwner: pu.isOwner }} />
     </main>
   );
 }

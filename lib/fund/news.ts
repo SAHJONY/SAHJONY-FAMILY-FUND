@@ -15,9 +15,8 @@ import type { NewsAnalysis } from "./types";
 import { getNews } from "./market";
 import { readNewsCache, writeNewsCache } from "./store";
 import { complete, extractJson } from "../infer";
+import { key } from "./ctx";
 import { FundConfig } from "./config";
-
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-fable-5";
 
 function prompt(ticker: string, headlines: { title: string; publisher: string; ts: number }[], hasPosition: boolean): string {
   const list = headlines.map((h, i) => `${i + 1}. ${h.title} (${h.publisher})`).join("\n");
@@ -37,8 +36,9 @@ function prompt(ticker: string, headlines: { title: string; publisher: string; t
 }
 
 async function viaAnthropic(text: string): Promise<{ content: string; model: string } | null> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
+  const apiKey = key("ANTHROPIC_API_KEY");
+  if (!apiKey) return null;
+  const model = key("ANTHROPIC_MODEL") || "claude-fable-5";
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 30000);
   try {
@@ -46,11 +46,11 @@ async function viaAnthropic(text: string): Promise<{ content: string; model: str
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-api-key": key,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
+        model,
         max_tokens: 700,
         messages: [{ role: "user", content: text }],
       }),
@@ -59,7 +59,7 @@ async function viaAnthropic(text: string): Promise<{ content: string; model: str
     if (!res.ok) return null;
     const j = await res.json();
     const content = j?.content?.[0]?.text;
-    return content ? { content, model: ANTHROPIC_MODEL } : null;
+    return content ? { content, model } : null;
   } catch {
     return null;
   } finally {
@@ -68,13 +68,14 @@ async function viaAnthropic(text: string): Promise<{ content: string; model: str
 }
 
 export async function newsForTicker(
+  userId: string,
   ticker: string,
   hasPosition: boolean,
   cfg: FundConfig,
   asof: string
 ): Promise<NewsAnalysis> {
-  // Cache per name per day.
-  const cached = await readNewsCache(ticker, asof);
+  // Cache per user per name per day.
+  const cached = await readNewsCache(userId, ticker, asof);
   if (cached) return { ...cached, cached: true };
 
   const cutoff = Date.now() / 1000 - cfg.newsWindowDays * 86400;
@@ -116,6 +117,6 @@ export async function newsForTicker(
     headlines: headlines.map((h) => ({ title: h.title, publisher: h.publisher, link: h.link, ts: h.ts })),
     model, cached: false, asof,
   };
-  await writeNewsCache(analysis);
+  await writeNewsCache(userId, analysis);
   return analysis;
 }

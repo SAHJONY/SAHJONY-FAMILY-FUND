@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerUser, verifyLogin, signSession, clearCookie, currentUser, publicUser } from "@/lib/fund/auth";
+import { seedExampleBook } from "@/lib/fund/store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export async function POST(req: NextRequest) {
   if (action === "register") {
     const r = await registerUser(String(b.email || ""), String(b.name || ""), String(b.password || ""));
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 422 });
+    await seedExampleBook(r.user!.id);
     const { cookie } = signSession(r.user!.id);
     return NextResponse.json({ ok: true, user: r.user }, { headers: { "Set-Cookie": cookie } });
   }

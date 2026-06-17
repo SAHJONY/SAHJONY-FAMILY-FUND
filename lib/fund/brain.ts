@@ -13,23 +13,28 @@
 import { readState } from "./store";
 import { getAccount, valuePaper } from "./quant/paper";
 import { complete, extractJson } from "../infer";
+import { key } from "./ctx";
+import { getPersona } from "./personas";
 import type { FundReport } from "./types";
 
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-fable-5";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const ANTHROPIC_MODEL = () => key("ANTHROPIC_MODEL") || "claude-fable-5";
+const OPENAI_MODEL = () => key("OPENAI_MODEL") || "gpt-4o";
+const GROQ_MODEL = () => key("GROQ_MODEL") || "llama-3.3-70b-versatile";
 
-function systemPrompt(lang: "en" | "es"): string {
+function systemPrompt(lang: "en" | "es", personaId?: string): string {
   const langLine = lang === "es"
     ? "Responde SIEMPRE en español, claro y conciso."
     : "Always answer in English, clear and concise.";
-  return [
+  const lines = [
     "You are the analyst engine inside SAHJONY CAPITAL LLC — a markets MONITOR and quant lab.",
     "You explain what the user's data shows: positions, unrealized P&L, option Greeks, the deterministic macro gate, IV environment, backtest metrics (CAGR/Sharpe/Sortino/max drawdown), systematic signals, and news.",
-    "Hard rules: you EXPLAIN and EDUCATE only. You never give personalized investment advice and never tell the user to buy, sell, hold, roll, or trade. If asked for a recommendation or a price target call, present the relevant facts, note their own targets/stops, and say you don't provide trade advice.",
+    "Hard rules (these OVERRIDE any persona's traditional output style): you EXPLAIN and EDUCATE only. You never give personalized investment advice and never tell the user to buy, sell, hold, or trade. You do not issue ratings or price targets as advice, and you never route or simulate orders. If asked for a recommendation, present the relevant facts and frameworks, note the user's own targets/stops, and say you don't provide trade advice.",
     "Backtest results are measured on history and never a promise of future returns. Be honest about uncertainty.",
-    langLine,
-  ].join("\n");
+  ];
+  const persona = getPersona(personaId);
+  if (persona) lines.push(`ANALYTICAL LENS — ${persona.firm} · ${persona.name}: ${persona.lens}`);
+  lines.push(langLine);
+  return lines.join("\n");
 }
 
 // A compact, token-bounded snapshot of the user's current state for context.
@@ -63,36 +68,38 @@ function buildContext(report: FundReport | null, paper: ReturnType<typeof valueP
 }
 
 async function viaAnthropic(system: string, userMsg: string): Promise<{ content: string; model: string } | null> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
+  const apiKey = key("ANTHROPIC_API_KEY");
+  if (!apiKey) return null;
+  const model = ANTHROPIC_MODEL();
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 40000);
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 900, system, messages: [{ role: "user", content: userMsg }] }),
+      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model, max_tokens: 900, system, messages: [{ role: "user", content: userMsg }] }),
       signal: c.signal,
     });
     if (!res.ok) return null;
     const j = await res.json();
     const content = j?.content?.[0]?.text;
-    return content ? { content, model: ANTHROPIC_MODEL } : null;
+    return content ? { content, model } : null;
   } catch { return null; } finally { clearTimeout(t); }
 }
 
 // Second engine: OpenAI (used when Claude is unavailable).
 async function viaOpenAI(system: string, userMsg: string): Promise<{ content: string; model: string } | null> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
+  const apiKey = key("OPENAI_API_KEY");
+  if (!apiKey) return null;
+  const model = OPENAI_MODEL();
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 40000);
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: OPENAI_MODEL, max_tokens: 900,
+        model, max_tokens: 900,
         messages: [{ role: "system", content: system }, { role: "user", content: userMsg }],
       }),
       signal: c.signal,
@@ -100,22 +107,23 @@ async function viaOpenAI(system: string, userMsg: string): Promise<{ content: st
     if (!res.ok) return null;
     const j = await res.json();
     const content = j?.choices?.[0]?.message?.content;
-    return content ? { content, model: OPENAI_MODEL } : null;
+    return content ? { content, model } : null;
   } catch { return null; } finally { clearTimeout(t); }
 }
 
 // Third engine: Groq (free, fast — OpenAI-compatible API).
 async function viaGroq(system: string, userMsg: string): Promise<{ content: string; model: string } | null> {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return null;
+  const apiKey = key("GROQ_API_KEY");
+  if (!apiKey) return null;
+  const model = GROQ_MODEL();
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 40000);
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "content-type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: GROQ_MODEL, max_tokens: 900,
+        model, max_tokens: 900,
         messages: [{ role: "system", content: system }, { role: "user", content: userMsg }],
       }),
       signal: c.signal,
@@ -123,16 +131,16 @@ async function viaGroq(system: string, userMsg: string): Promise<{ content: stri
     if (!res.ok) return null;
     const j = await res.json();
     const content = j?.choices?.[0]?.message?.content;
-    return content ? { content, model: `groq/${GROQ_MODEL}` } : null;
+    return content ? { content, model: `groq/${model}` } : null;
   } catch { return null; } finally { clearTimeout(t); }
 }
 
 export interface BrainReply { answer: string; model: string }
 
-export async function askBrain(question: string, lang: "en" | "es" = "en"): Promise<BrainReply> {
-  const report = await readState();
-  const paper = valuePaper(await getAccount(), {});
-  const system = systemPrompt(lang);
+export async function askBrain(userId: string, question: string, lang: "en" | "es" = "en", personaId?: string): Promise<BrainReply> {
+  const report = await readState(userId);
+  const paper = valuePaper(await getAccount(userId), {});
+  const system = systemPrompt(lang, personaId);
   const userMsg = `CURRENT BOOK CONTEXT:\n${buildContext(report, paper)}\n\nUSER QUESTION:\n${question}`;
 
   // Engine chain: Claude (primary) → OpenAI → Groq (free) → in-house NIM brain.

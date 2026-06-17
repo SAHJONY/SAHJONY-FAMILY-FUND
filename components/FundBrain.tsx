@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel } from "@/components/ui";
+import { useI18n } from "@/components/i18n";
 
 type Lang = "en" | "es";
 interface Msg { role: "user" | "brain"; text: string; model?: string }
+interface PersonaMeta { id: string; name: string; firm: string; focus: string }
 
 const T = {
   en: {
@@ -24,12 +26,16 @@ const T = {
 };
 
 export default function FundBrain() {
-  const [lang, setLang] = useState<Lang>("en");
+  const { lang } = useI18n();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [personas, setPersonas] = useState<PersonaMeta[]>([]);
+  const [persona, setPersona] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const t = T[lang];
+
+  useEffect(() => { fetch("/api/fund/brain").then((r) => r.json()).then((j) => setPersonas(j.personas || [])).catch(() => {}); }, []);
 
   const ask = useCallback(async (q: string) => {
     const question = q.trim();
@@ -37,7 +43,7 @@ export default function FundBrain() {
     setMsgs((m) => [...m, { role: "user", text: question }]);
     setInput(""); setBusy(true);
     try {
-      const r = await fetch("/api/fund/brain", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, lang }) });
+      const r = await fetch("/api/fund/brain", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, lang, persona }) });
       const j = await r.json();
       setMsgs((m) => [...m, { role: "brain", text: j.answer || j.error || "—", model: j.model }]);
     } catch {
@@ -46,27 +52,23 @@ export default function FundBrain() {
       setBusy(false);
       setTimeout(() => scrollRef.current?.scrollTo({ top: 1e9, behavior: "smooth" }), 50);
     }
-  }, [busy, lang]);
+  }, [busy, lang, persona]);
 
   return (
     <Panel
       title={t.title}
-      badge={
-        <div className="flex items-center gap-2">
-          <span className="text-[8px] tracking-widest text-[var(--muted)]">{t.badge}</span>
-          <div className="flex border border-[rgba(63,224,255,0.3)]">
-            {(["en", "es"] as Lang[]).map((l) => (
-              <button key={l} onClick={() => setLang(l)}
-                className="text-[9px] px-1.5 py-0.5 uppercase tracking-widest"
-                style={{ background: lang === l ? "var(--hud)" : "transparent", color: lang === l ? "#000" : "var(--muted)" }}>
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-      }
+      badge={<span className="text-[8px] tracking-widest text-[var(--muted)]">{t.badge}</span>}
     >
       <div className="text-[10px] text-[var(--muted)] mb-2">{t.intro}</div>
+
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[9px] uppercase tracking-widest text-[var(--muted)]">{lang === "es" ? "Lente" : "Lens"}</span>
+        <select value={persona} onChange={(e) => setPersona(e.target.value)}
+          className="flex-1 bg-[var(--hud-deep)] border border-[rgba(63,224,255,0.3)] px-2 py-1 text-[11px] text-[var(--text)]">
+          <option value="">{lang === "es" ? "General (sin persona)" : "General (no persona)"}</option>
+          {personas.map((p) => <option key={p.id} value={p.id}>{p.firm} · {p.name}</option>)}
+        </select>
+      </div>
 
       <div ref={scrollRef} className="space-y-2 max-h-72 overflow-auto mb-2">
         {msgs.length === 0 ? (

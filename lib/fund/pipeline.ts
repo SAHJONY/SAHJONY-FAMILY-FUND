@@ -22,16 +22,18 @@ function today(): string {
 }
 
 export interface RunOptions {
+  userId: string;         // whose book to run (per-user isolation)
   asof?: string;          // stamp the run date for storage/diffing
   skipNews?: boolean;     // skip the one paid layer (e.g. cheap intraday refresh)
   config?: Partial<FundConfig>;
 }
 
-export async function runPipeline(opts: RunOptions = {}): Promise<FundReport> {
+export async function runPipeline(opts: RunOptions): Promise<FundReport> {
+  const userId = opts.userId;
   const cfg: FundConfig = { ...DEFAULT_CONFIG, ...(opts.config ?? {}) };
   const asof = opts.asof ?? today();
   const errors: string[] = [];
-  const positions = await listPositions();
+  const positions = await listPositions(userId);
 
   // Which underlyings need a feed (skip cash / unlisted alts).
   const fedTickers = [...new Set(
@@ -80,8 +82,8 @@ export async function runPipeline(opts: RunOptions = {}): Promise<FundReport> {
         ),
       };
       snapshots.push(snap);
-      await saveSnapshot(snap);
-      priorByTicker[ticker] = await loadPriorSnapshot(ticker, asof);
+      await saveSnapshot(userId, snap);
+      priorByTicker[ticker] = await loadPriorSnapshot(userId, ticker, asof);
     }
   }
 
@@ -90,7 +92,7 @@ export async function runPipeline(opts: RunOptions = {}): Promise<FundReport> {
 
   // ---- Layer 2: analytics (with IV history from stored snapshots) ----------
   const ivHistByTicker: Record<string, number[]> = {};
-  for (const ticker of fedTickers) ivHistByTicker[ticker] = await ivHistory(ticker, cfg.ivLookbackDays);
+  for (const ticker of fedTickers) ivHistByTicker[ticker] = await ivHistory(userId, ticker, cfg.ivLookbackDays);
   const analytics = analyze(valued, cfg, ivHistByTicker);
 
   // ---- Layer 3a: deterministic macro gate ----------------------------------
@@ -103,7 +105,7 @@ export async function runPipeline(opts: RunOptions = {}): Promise<FundReport> {
   if (!opts.skipNews) {
     const heldTickers = new Set(positions.map((p) => p.ticker));
     for (const ticker of fedTickers) {
-      try { news.push(await newsForTicker(ticker, heldTickers.has(ticker), cfg, asof)); }
+      try { news.push(await newsForTicker(userId, ticker, heldTickers.has(ticker), cfg, asof)); }
       catch { errors.push(`news unavailable: ${ticker}`); }
     }
   }
@@ -126,7 +128,7 @@ export async function runPipeline(opts: RunOptions = {}): Promise<FundReport> {
     newStrikes: diffs.newStrikes, newExpiries: diffs.newExpiries, errors,
   };
 
-  await writeState(report);
+  await writeState(userId, report);
   await maybeSend(alerts, asof);
   return report;
 }
