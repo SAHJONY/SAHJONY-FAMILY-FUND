@@ -63,6 +63,25 @@ export async function getHistory(symbol: string, range = "1y"): Promise<number[]
   return closes.filter((c): c is number => typeof c === "number");
 }
 
+export interface Bar { date: string; open: number; high: number; low: number; close: number; volume: number }
+
+// Daily OHLCV bars for the quant engine (backtests, ATR, breakouts). Real data;
+// returns [] on failure so callers degrade honestly rather than fabricate.
+export async function getDailyBars(symbol: string, range = "5y"): Promise<Bar[]> {
+  const j = await getJson<any>(`${QHOST}/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d`);
+  const r = j?.chart?.result?.[0];
+  const ts: number[] = r?.timestamp ?? [];
+  const q = r?.indicators?.quote?.[0];
+  if (!ts.length || !q) return [];
+  const bars: Bar[] = [];
+  for (let i = 0; i < ts.length; i++) {
+    const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i], v = q.volume?.[i];
+    if ([o, h, l, c].some((x) => typeof x !== "number")) continue;
+    bars.push({ date: new Date(ts[i] * 1000).toISOString().slice(0, 10), open: o, high: h, low: l, close: c, volume: v ?? 0 });
+  }
+  return bars;
+}
+
 function epochToYmd(sec: number): string {
   return new Date(sec * 1000).toISOString().slice(0, 10);
 }
