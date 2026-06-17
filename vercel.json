@@ -3,6 +3,9 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "functions": {
+    "app/api/fund/run/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/**/route.ts": {
       "maxDuration": 15
     }
@@ -14,6 +17,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/finder/run", "schedule": "0 9 * * *" }
+    { "path": "/api/finder/run", "schedule": "0 9 * * *" },
+    { "path": "/api/fund/run", "schedule": "30 21 * * 1-5" }
   ]
 }
