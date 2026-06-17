@@ -258,6 +258,15 @@ export default function FundDashboard() {
     finally { setRunning(false); }
   }, []);
 
+  const share = useCallback(async () => {
+    const data = { title: "SAHJONY CAPITAL LLC", text: "SAHJONY CAPITAL LLC — markets monitor & quant lab", url: window.location.href };
+    try {
+      if (navigator.share) { await navigator.share(data); return; }
+      await navigator.clipboard.writeText(data.url);
+      setMsg("Link copied to clipboard.");
+    } catch { /* user cancelled */ }
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -268,10 +277,16 @@ export default function FundDashboard() {
             <span className="mx-1.5">·</span>Deterministic multi-asset monitor · reports conditions, tracks your own targets · never recommends a trade
           </p>
         </div>
-        <button onClick={run} disabled={running}
-          className="text-[11px] tracking-[0.2em] uppercase px-5 py-2.5 font-bold border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-50">
-          {running ? "Running…" : "▶ Run Pipeline"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={share}
+            className="text-[11px] tracking-[0.2em] uppercase px-4 py-2.5 border border-[rgba(63,224,255,0.4)] text-[var(--hud)] hover:bg-[rgba(63,224,255,0.08)]">
+            ⤴ Share
+          </button>
+          <button onClick={run} disabled={running}
+            className="text-[11px] tracking-[0.2em] uppercase px-5 py-2.5 font-bold border border-[var(--gold)] text-[var(--gold)] hover:bg-[rgba(255,194,75,0.08)] disabled:opacity-50">
+            {running ? "Running…" : "▶ Run Pipeline"}
+          </button>
+        </div>
       </div>
       {msg && <div className="text-[10px] text-[var(--muted)]">{msg}</div>}
 

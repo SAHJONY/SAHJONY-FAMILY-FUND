@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#06090f"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#3fe0ff" stroke-width="6" opacity="0.35"/>
+  <g stroke="#3fe0ff" stroke-width="3" opacity="0.5">
+    <line x1="256" y1="70" x2="256" y2="110"/>
+    <line x1="256" y1="402" x2="256" y2="442"/>
+    <line x1="70" y1="256" x2="110" y2="256"/>
+    <line x1="402" y1="256" x2="442" y2="256"/>
+  </g>
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#ffc24b" stroke-width="10"/>
+  <circle cx="256" cy="256" r="58" fill="#3fe0ff" opacity="0.9"/>
+  <circle cx="256" cy="256" r="58" fill="none" stroke="#eafcff" stroke-width="4"/>
+  <text x="256" y="468" text-anchor="middle" font-family="ui-monospace, monospace" font-size="44" fill="#ffc24b" letter-spacing="4">SAHJONY</text>
+</svg>
