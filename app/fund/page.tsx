@@ -1,6 +1,7 @@
 import Link from "next/link";
 import FundDashboard from "@/components/FundDashboard";
 import StrategyLab from "@/components/StrategyLab";
+import FundBrain from "@/components/FundBrain";
 
 export const metadata = {
   title: "SAHJONY CAPITAL LLC",
@@ -14,7 +15,9 @@ export default function FundPage() {
         <Link href="/" className="text-[11px] tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--hud)]">‹ Control Plane</Link>
       </div>
       <FundDashboard />
-      <div className="my-8 border-t border-[rgba(63,224,255,0.15)]" />
+      <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
+      <FundBrain />
+      <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
       <StrategyLab />
     </main>
   );
