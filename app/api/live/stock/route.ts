@@ -20,7 +20,7 @@ export async function GET() {
           const quotes = await Promise.all(
             symbols.map((sym) => alpaca.getLatestQuote(sym).catch(() => null))
           );
-          const data = quotes.map((q, i) => ({ symbol: symbols[i], price: q?.last?.price ?? null }));
+          const data = quotes.map((q, i) => ({ symbol: symbols[i], price: q?.AskPrice ?? q?.BidPrice ?? null }));
           const payload = `data: ${JSON.stringify(data)}\n\n`;
           controller.enqueue(new TextEncoder().encode(payload));
         } catch (e) {
@@ -29,7 +29,8 @@ export async function GET() {
       }, 2000);
 
       // Cleanup when client disconnects
-      controller.signal.addEventListener('abort', () => clearInterval(interval));
+      // @ts-ignore: ignore missing signal on controller
+    (controller as any).signal?.addEventListener('abort', () => clearInterval(interval));
     },
   });
 

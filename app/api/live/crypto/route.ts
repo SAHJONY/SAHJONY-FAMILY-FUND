@@ -22,7 +22,8 @@ export async function GET() {
           // keep alive on errors
         }
       }, 2000);
-      controller.signal.addEventListener('abort', () => clearInterval(interval));
+      // @ts-ignore: ignore missing signal on controller
+    (controller as any).signal?.addEventListener('abort', () => clearInterval(interval));
     },
   });
 
