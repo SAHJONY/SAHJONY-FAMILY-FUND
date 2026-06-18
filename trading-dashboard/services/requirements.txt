@@ -1,0 +1,6 @@
+openbb
+ccxt
+alpaca-py
+psycopg2-binary
+fastapi
+uvicorn
