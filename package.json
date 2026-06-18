@@ -17,7 +17,10 @@
     "nodemailer": "^8.0.11",
     "playwright": "^1.60.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "ccxt": "^3.0.0",
+    "@alpacahq/alpaca-trade-api": "^3.2.0",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.4",

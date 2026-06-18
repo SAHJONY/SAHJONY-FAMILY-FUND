@@ -5,7 +5,8 @@ import Link from "next/link";
 import { LangProvider, LangToggle, useI18n } from "@/components/i18n";
 import { Panel } from "@/components/ui";
 import FundDashboard from "@/components/FundDashboard";
-import FundBrain from "@/components/FundBrain";
+import LiveData from "@/components/LiveData";
+
 import StrategyLab from "@/components/StrategyLab";
 
 export interface SessionUser { id: string; name: string; email: string; plan: "free" | "pro"; isOwner: boolean }
@@ -85,6 +86,7 @@ export default function FundApp({ user }: { user: SessionUser }) {
       <AccountBar user={user} />
       <div className="my-4" />
       <FundDashboard />
+      <LiveData />
       <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
       <FundBrain />
       <div className="my-6 border-t border-[rgba(63,224,255,0.15)]" />
