@@ -75,7 +75,6 @@ const DICT: Record<string, { en: string; es: string }> = {
   email: { en: "Email", es: "Correo" },
   name: { en: "Name", es: "Nombre" },
   password: { en: "Password", es: "Contraseña" },
-  loginCta: { en: "Each family member gets their own private, secured account.", es: "Cada miembro de la familia tiene su propia cuenta privada y segura." },
 };
 
 interface Ctx { lang: Lang; setLang: (l: Lang) => void; t: (k: string) => string }
