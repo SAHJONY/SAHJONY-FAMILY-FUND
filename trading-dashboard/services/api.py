@@ -3,6 +3,17 @@ Install fastapi and uvicorn via requirements.txt if needed.
 """
 import asyncio
 from fastapi import FastAPI
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+# Load .env file if present (development only)
+env_path = Path(__file__).parent / ".env"
+if env_path.is_file():
+    load_dotenv(dotenv_path=env_path)
+
+OWNER_EMAIL = os.getenv("OWNER_EMAIL")
+OWNER_PASSWORD = os.getenv("OWNER_PASSWORD")
 from fastapi.responses import JSONResponse
 
 app = FastAPI()
